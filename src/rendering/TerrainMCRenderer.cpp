@@ -33,10 +33,17 @@ void TerrainMCRenderer::setup()
     for (int i = 0; i < MC_GRID_X; i++)
         for (int j = 0; j < MC_GRID_Y; j++)
             for (int k = 0; k < MC_GRID_Z; k++)
-                field[(k * MC_GRID_Y + j) * MC_GRID_X + i] =
-                        PerlinNoise::GetValue(i * MC_NOISE_FREQ,
-                                              j * MC_NOISE_FREQ,
-                                              k * MC_NOISE_FREQ);
+            {
+                bool boundary = (i == 0 || i == MC_GRID_X - 1 ||
+                                 j == 0 || j == MC_GRID_Y - 1 ||
+                                 k == 0 || k == MC_GRID_Z - 1);
+
+                field[(k * MC_GRID_Y + j) * MC_GRID_X + i] = boundary
+                                                             ? -1.0f
+                                                             : PerlinNoise::GetValue(i * MC_NOISE_FREQ,
+                                                                                     j * MC_NOISE_FREQ,
+                                                                                     k * MC_NOISE_FREQ);
+            }
 
     MC::mcMesh mcMeshData;
     MC::marching_cube(field, MC_GRID_X, MC_GRID_Y, MC_GRID_Z, mcMeshData);
