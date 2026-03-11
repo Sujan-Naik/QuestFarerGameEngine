@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="QuestFarerEngine"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="gcc"/>
+		<Option virtualFolders="CMake Files\;CMake Files\images\;CMake Files\..\;CMake Files\..\..\;CMake Files\..\..\..\;CMake Files\..\..\..\..\;CMake Files\..\..\..\..\usr\;CMake Files\..\..\..\..\usr\local\;CMake Files\..\..\..\..\usr\local\lib\;CMake Files\..\..\..\..\usr\local\lib\cmake\;CMake Files\..\..\..\..\usr\local\lib\cmake\glfw3\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="QuestFarerEngine">
+				<Option output="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/QuestFarerEngine" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/sujan/CLionProjects/QuestFarerGameEngine/external"/>
+					<Add directory="/usr/include/c++/12"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/12"/>
+					<Add directory="/usr/include/c++/12/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/12/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 QuestFarerEngine"/>
+					<CompileFile command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="QuestFarerEngine/fast">
+				<Option output="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/QuestFarerEngine" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/sujan/CLionProjects/QuestFarerGameEngine/external"/>
+					<Add directory="/usr/include/c++/12"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/12"/>
+					<Add directory="/usr/include/c++/12/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/12/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 QuestFarerEngine/fast"/>
+					<CompileFile command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/gmake -j16 -f &quot;/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/external/KHR/khrplatform.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/external/glad/glad.c">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/external/glad/glad.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/external/stb/stb_image.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/external/stb/stb_image.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/Camera.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/cloud/Cloud.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/cloud/CloudRenderer.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/cloud/CloudSimulator.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/generator/Generator.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/generator/Grid.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/generator/Square.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/globals.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/logger/Logger.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/mesh/Mesh.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/rendering/LightingRenderer.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/rendering/MeshRenderer.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/rendering/Shader.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/rendering/TerrainRenderer.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/include/utils/Utils.h">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/Camera.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/clouds/CloudRenderer.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/clouds/CloudSimulator.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/generator/Generator.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/generator/Square.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/main.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/rendering/LightingRenderer.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/rendering/MeshRenderer.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/rendering/Shader.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/rendering/TerrainRenderer.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/src/utils/Utils.cpp">
+			<Option target="QuestFarerEngine"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/images/cloud.png">
+			<Option virtualFolder="CMake Files\images\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/images/grass.png">
+			<Option virtualFolder="CMake Files\images\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/../../../../usr/local/lib/cmake/glfw3/glfw3Config.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\lib\cmake\glfw3\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/../../../../usr/local/lib/cmake/glfw3/glfw3ConfigVersion.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\lib\cmake\glfw3\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/../../../../usr/local/lib/cmake/glfw3/glfw3Targets-noconfig.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\lib\cmake\glfw3\"/>
+		</Unit>
+		<Unit filename="/home/sujan/CLionProjects/QuestFarerGameEngine/../../../../usr/local/lib/cmake/glfw3/glfw3Targets.cmake">
+			<Option virtualFolder="CMake Files\..\..\..\..\usr\local\lib\cmake\glfw3\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>
