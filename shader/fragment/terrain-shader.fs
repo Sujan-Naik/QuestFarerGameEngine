@@ -9,12 +9,12 @@ uniform vec3 lightPos;
 uniform vec3 viewPos;
 uniform vec3 lightColor;
 
-uniform sampler2D texture1;
+uniform sampler2D texture_diffuse1;
 
 void main()
 {
 
-    vec3 textureColor = texture(texture1, TexCoord).rgb;
+    vec3 textureColor = texture(texture_diffuse1, TexCoord).rgb;
     // ambient
     float ambientStrength = 0.3;
     vec3 ambient = ambientStrength * lightColor * textureColor;

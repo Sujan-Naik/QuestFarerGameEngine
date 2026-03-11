@@ -1,4 +1,4 @@
-#include "../../include/rendering/TerrainRenderer.h"
+#include "../../include/rendering/TerrainDSRenderer.h"
 #include "../../include/cloud/CloudSimulator.h"
 #include "../../include/cloud/CloudRenderer.h"
 #include "../../include/utils/Utils.h"

@@ -23,8 +23,8 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/utils/Utils.cpp
         include/utils/Utils.h
         include/generator/Square.h
-        src/rendering/TerrainRenderer.cpp
-        include/rendering/TerrainRenderer.h
+        src/rendering/TerrainDSRenderer.cpp
+        include/rendering/TerrainDSRenderer.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
         include/cloud/Cloud.h
@@ -37,6 +37,10 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/rendering/MeshRenderer.cpp
         src/generator/Square.cpp
         include/globals.h
+        external/MC/MC.h
+        external/MC/noise.h
+        src/rendering/TerrainMCRenderer.cpp
+        include/rendering/TerrainMCRenderer.h
 )
 
 find_package(glfw3 3.3 REQUIRED)
