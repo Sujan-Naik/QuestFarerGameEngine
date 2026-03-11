@@ -9,6 +9,7 @@
 #include "../include/rendering/LightingRenderer.h"
 #include "../include/cloud/CloudRenderer.h"
 #include "../include/globals.h"
+#include "../include/model/Model.h"
 
 #include <GLFW/glfw3.h>
 #include <cmath>
@@ -95,7 +96,7 @@ void createTexture(unsigned int& texture, const char* path)
 
 int main()
 {
-    camera->setCameraPos({EFFECTIVE_SIDE_LENGTH / 2, HEIGHT_UPPER_BOUND * 1.5, EFFECTIVE_SIDE_LENGTH / 2});
+//    camera->setCameraPos({EFFECTIVE_SIDE_LENGTH / 2, HEIGHT_UPPER_BOUND * 1.5, EFFECTIVE_SIDE_LENGTH / 2});
     glfwInit();
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -131,10 +132,10 @@ int main()
     terrainShader->setInt("texture1", 0);
 
     unsigned int texture1;
-    createTexture(texture1, "grass.png");
+    createTexture(texture1, "resources/images/grass.png");
 
     unsigned int texture2;
-    createTexture(texture2, "cloud.png");
+    createTexture(texture2, "resources/images/cloud.png");
 
 
 #ifdef TERRAIN_DS
@@ -157,9 +158,20 @@ int main()
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(true);
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // load models
+    // -----------
+
+    Shader ourShader("../shader/vertex/model-loading.vs", "../shader/fragment/model-loading.fs");
+    Model ourModel("resources/objects/backpack/backpack.obj");
+
 
     cloudRenderer->setupVertexData();
     lighting->setupLighting();
@@ -173,15 +185,36 @@ int main()
         processInput(window);
         handleRendering(window);
 
+
+
+
+        lighting->drawLighting(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix());
+
+        // don't forget to enable shader before setting uniforms
+        ourShader.use();
+
+        // view/projection transformations
+        ourShader.setMat4("view", getViewMatrix());
+        ourShader.setMat4("projection", getProjectionMatrix());
+
+        // render the loaded model
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        ourShader.setMat4("model", model);
+        ourModel.Draw(ourShader);
+
+
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
+        terrainRenderer->draw(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix(), {0, 0, 0});
+        glBindTexture(GL_TEXTURE_2D, 0);
+
 
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
-
-        terrainRenderer->draw(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix(), {0, 0, 0});
-
-        lighting->drawLighting(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix());
+        // Clouds
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

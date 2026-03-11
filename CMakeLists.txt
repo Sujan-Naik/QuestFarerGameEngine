@@ -3,8 +3,7 @@ project(QuestFarerGameEngine)
 
 set(CMAKE_CXX_STANDARD 23)
 
-configure_file(images/grass.png grass.png COPYONLY)
-configure_file(images/cloud.png cloud.png COPYONLY)
+
 
 add_executable(QuestFarerGameEngine src/main.cpp
         external/KHR/khrplatform.h
@@ -41,7 +40,19 @@ add_executable(QuestFarerGameEngine src/main.cpp
         external/MC/noise.h
         src/rendering/TerrainMCRenderer.cpp
         include/rendering/TerrainMCRenderer.h
+        include/model/Model.h
 )
+
+add_custom_command(
+        TARGET QuestFarerGameEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources
+        ${CMAKE_BINARY_DIR}/resources
+        COMMENT "Copying resources..."
+)
+
+find_package(assimp REQUIRED)
+target_link_libraries(QuestFarerGameEngine assimp)
 
 find_package(glfw3 3.3 REQUIRED)
 target_link_libraries(QuestFarerGameEngine glfw)

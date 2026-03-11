@@ -105,7 +105,7 @@ void CloudRenderer::drawClouds(glm::vec3 cameraPosition, glm::mat4 projection, g
     }
 
     glDepthMask(GL_TRUE);
-
+    glBindTexture(GL_TEXTURE_2D, 0);
 
 }
 
