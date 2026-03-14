@@ -16,30 +16,28 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/Camera.cpp
         include/Camera.h
         include/logger/Logger.h
-        src/generator/Generator.cpp
-        include/generator/Generator.h
-        include/generator/Grid.h
         src/utils/Utils.cpp
         include/utils/Utils.h
-        include/generator/Square.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
         include/mesh/Mesh.h
         include/rendering/MeshRenderer.h
         src/rendering/MeshRenderer.cpp
-        src/generator/Square.cpp
         include/globals.h
         external/MC/MC.h
         external/MC/noise.h
         src/rendering/TerrainMCRenderer.cpp
         include/rendering/TerrainMCRenderer.h
         include/model/Model.h
-        include/components/Component.h
-        include/components/ContainerObject.h
-        include/components/GameObject.h
-        include/components/AIComponent.h
-        include/components/PhysicsComponent.h
-        include/components/RenderComponent.h
+        include/scene/components/Component.h
+        include/scene/components/ContainerObject.h
+        include/scene/objects/GameObject.h
+        include/scene/components/AIComponent.h
+        include/scene/components/PhysicsComponent.h
+        include/scene/objects/ModelObject.h
+        include/scene/objects/CustomMeshObject.h
+        include/rendering/RenderContext.h
+        include/scene/geometry/Transform.h
 )
 
 add_custom_command(

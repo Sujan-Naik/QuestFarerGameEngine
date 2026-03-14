@@ -9,13 +9,13 @@ enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT };
 class Camera
 {
 public:
-    static constexpr float DEFAULT_SPEED       = 2.5f;
+    static constexpr float DEFAULT_SPEED       = 500.0f;
     static constexpr float DEFAULT_SENSITIVITY = 0.1f;
     static constexpr float DEFAULT_FOV         = 45.0f;
 
     Camera();
 
-    void processKeyboard(CameraMovement direction, float deltaTime);
+    void processKeyboard(CameraMovement direction, double deltaTime);
     void processMouseMovement(float xpos, float ypos);
     void processScroll(float yoffset);
 

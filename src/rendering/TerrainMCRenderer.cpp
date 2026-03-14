@@ -16,11 +16,6 @@ TerrainMCRenderer::TerrainMCRenderer(std::shared_ptr<Logger> logger,
 {
 }
 
-void TerrainMCRenderer::initTerrainData(std::shared_ptr<Generator> newGenerator)
-{
-    generator = newGenerator;
-}
-
 void TerrainMCRenderer::setTexture(unsigned int glTextureId)
 {
     textureId = glTextureId;
@@ -76,19 +71,16 @@ void TerrainMCRenderer::setup()
     mesh.emplace(vertices, mcMeshData.indices, std::vector<Texture>{ tex }); // <-- was mesh->Draw(*shader)
 }
 
-void TerrainMCRenderer::draw(glm::vec3 cameraPosition,
-                             glm::mat4 projection,
-                             glm::mat4 view,
-                             glm::vec3 offset)
+void TerrainMCRenderer::draw(const RenderContext& ctx)
 {
     if (!mesh.has_value()) return;
 
     shader->use();
-    shader->setMat4("projection", projection);
-    shader->setMat4("view", view);
+    shader->setMat4("projection", ctx.projection);
+    shader->setMat4("view", ctx.view);
 
     // Lighting uniforms — without these the fragment shader outputs black
-    shader->setVec3("viewPos",    cameraPosition);
+    shader->setVec3("viewPos",    ctx.cameraPosition);
     shader->setVec3("lightPos",   glm::vec3(EFFECTIVE_SIDE_LENGTH / 2.0f,
                                             HEIGHT_UPPER_BOUND,
                                             EFFECTIVE_SIDE_LENGTH / 2.0f));
@@ -103,5 +95,9 @@ void TerrainMCRenderer::draw(glm::vec3 cameraPosition,
     model = glm::scale(model, glm::vec3(MC_WORLD_SCALE));
     shader->setMat4("model", model);
 
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureId);
     mesh->Draw(*shader);
+    glBindTexture(GL_TEXTURE_2D, 0);
 }

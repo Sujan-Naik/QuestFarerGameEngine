@@ -5,7 +5,7 @@
 
 Camera::Camera() = default;
 
-void Camera::processKeyboard(CameraMovement direction, float deltaTime)
+void Camera::processKeyboard(CameraMovement direction, double deltaTime)
 {
     const float speed = DEFAULT_SPEED * deltaTime;
     const glm::vec3 right = glm::normalize(glm::cross(front, up));
