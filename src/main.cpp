@@ -10,6 +10,9 @@
 #include "../include/rendering/LightingRenderer.h"
 #include "../include/globals.h"
 #include "../include/model/Model.h"
+#include "../include/components/AIComponent.h"
+#include "../include/components/PhysicsComponent.h"
+#include "../include/components/RenderComponent.h"
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
@@ -26,16 +29,17 @@ std::unique_ptr<LightingRenderer>  lighting;
 
 const unsigned int SCR_WIDTH  = 800;
 const unsigned int SCR_HEIGHT = 600;
+const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
 
 bool  cursorEnabled = false;
-float deltaTime     = 0.0f;
-float lastFrame     = 0.0f;
+const double MS_PER_UPDATE = 100.0/6.0;
+
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window);
+void processInput(GLFWwindow* window, double elapsed);
 void clearScreen();
 
 void createTexture(unsigned int& texture, const char* path)
@@ -93,6 +97,60 @@ GLFWwindow* initialiseGLFW()
     return window;
 }
 
+
+const int MAX_ENTITIES = 100;
+int numEntities = 0;
+AIComponent* aiComponents =
+        new AIComponent[MAX_ENTITIES];
+PhysicsComponent* physicsComponents =
+        new PhysicsComponent[MAX_ENTITIES];
+RenderComponent* renderComponents =
+        new RenderComponent[MAX_ENTITIES];
+
+void render(double timeScale){
+    const glm::mat4 view       = camera->getViewMatrix();
+    const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
+
+    lighting->drawLighting(camera->getPosition(), projection, view);
+
+
+    // Draw to screen.
+    for (int i = 0; i < numEntities; i++)
+    {
+        renderComponents[i].update();
+    }
+
+//    ourShader->use();
+//    ourShader->setMat4("view", view);
+//    ourShader->setMat4("projection", projection);
+//    ourShader->setMat4("model", glm::mat4(1.0f));
+//    ourModel->Draw(*ourShader);
+
+//    glActiveTexture(GL_TEXTURE0);
+//    glBindTexture(GL_TEXTURE_2D, texture1);
+//    terrainRenderer->draw(camera->getPosition(), projection, view, {0, 0, 0});
+//    glBindTexture(GL_TEXTURE_2D, 0);
+
+}
+
+
+void update(){
+
+    // Process AI.
+    for (int i = 0; i < numEntities; i++)
+    {
+        aiComponents[i].update();
+    }
+
+    // Update physics.
+    for (int i = 0; i < numEntities; i++)
+    {
+        physicsComponents[i].update();
+    }
+
+
+}
+
 int main()
 {
     GLFWwindow* window = initialiseGLFW();
@@ -129,6 +187,9 @@ int main()
             "../shader/vertex/model-loading.vs",
             "../shader/fragment/model-loading.fs"
     );
+
+
+
     auto ourModel = std::make_unique<Model>("resources/objects/backpack/backpack.obj");
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -136,32 +197,32 @@ int main()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
+
+
+    double previous = glfwGetTime();
+    double lag = 0.0;
+
+
 
     while (!glfwWindowShouldClose(window))
     {
-        const auto currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        double current = glfwGetTime();
+        double elapsed = current - previous;
+        previous = current;
+        lag += elapsed;
 
-        processInput(window);
+        processInput(window, elapsed);
+
         clearScreen();
 
-        const glm::mat4 view       = camera->getViewMatrix();
-        const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
+        while (lag >= MS_PER_UPDATE)
+        {
+            update();
+            lag -= MS_PER_UPDATE;
+        }
 
-        lighting->drawLighting(camera->getPosition(), projection, view);
+        render(lag / MS_PER_UPDATE);
 
-        ourShader->use();
-        ourShader->setMat4("view", view);
-        ourShader->setMat4("projection", projection);
-        ourShader->setMat4("model", glm::mat4(1.0f));
-        ourModel->Draw(*ourShader);
-
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        terrainRenderer->draw(camera->getPosition(), projection, view, {0, 0, 0});
-        glBindTexture(GL_TEXTURE_2D, 0);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -176,7 +237,7 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window)
+void processInput(GLFWwindow* window, double elapsed)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
     {
@@ -185,13 +246,13 @@ void processInput(GLFWwindow* window)
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::FORWARD, deltaTime);
+        camera->processKeyboard(CameraMovement::FORWARD, elapsed);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::BACKWARD, deltaTime);
+        camera->processKeyboard(CameraMovement::BACKWARD, elapsed);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::LEFT, deltaTime);
+        camera->processKeyboard(CameraMovement::LEFT, elapsed);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::RIGHT, deltaTime);
+        camera->processKeyboard(CameraMovement::RIGHT, elapsed);
 }
 
 void mouse_callback(GLFWwindow*, double xpos, double ypos)

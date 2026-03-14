@@ -34,6 +34,12 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/rendering/TerrainMCRenderer.cpp
         include/rendering/TerrainMCRenderer.h
         include/model/Model.h
+        include/components/Component.h
+        include/components/ContainerObject.h
+        include/components/GameObject.h
+        include/components/AIComponent.h
+        include/components/PhysicsComponent.h
+        include/components/RenderComponent.h
 )
 
 add_custom_command(

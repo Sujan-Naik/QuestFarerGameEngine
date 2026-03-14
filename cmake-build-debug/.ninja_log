@@ -1,14 +1,14 @@
 # ninja log v5
-1	1542	1773503323891401954	CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o	c1b5ee06c23e3e70
+2	1499	1773504068633406164	CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o	c1b5ee06c23e3e70
 1	913	1773247083484655006	CMakeFiles/QuestFarerGameEngine.dir/src/clouds/CloudRenderer.cpp.o	1fd5a9bd39beebfb
 2	1196	1773503323547390931	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainDSRenderer.cpp.o	37f39242a522f0d8
-0	302	1773243009460170434	CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o	dca880fac8c9a608
+2	437	1773504067573385698	CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o	dca880fac8c9a608
 0	915	1773243010076182335	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/Shader.cpp.o	d2ea65b82968cb43
-0	49	1773504061829274644	build.ninja	9011e7183d57fe
+0	49	1773506208272849472	build.ninja	9011e7183d57fe
 0	621	1773243009780176616	CMakeFiles/QuestFarerGameEngine.dir/src/utils/Utils.cpp.o	20176a688777c408
 1	446	1773243009608173293	CMakeFiles/QuestFarerGameEngine.dir/src/generator/Square.cpp.o	637b76b05f430da2
 2	1091	1773243010252185736	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/MeshRenderer.cpp.o	4f899cfcad4730fd
-1	167	1773503333951722569	QuestFarerGameEngine	c5b74d03d431479f
+1499	1632	1773504068697407399	QuestFarerGameEngine	d19c1bedb5886d6e
 1	1347	1773243010508190681	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainRenderer.cpp.o	125cc6a564d375cc
 1	689	1773243009848177930	CMakeFiles/QuestFarerGameEngine.dir/external/stb/stb_image.cpp.o	73866602a11a3c74
 2	302	1773244296755986865	CMakeFiles/QuestFarerGameEngine.dir/src/clouds/CloudSimulator.cpp.o	77847b84708e93d0
@@ -16,6 +16,3 @@
 1	1028	1773503323379385547	CMakeFiles/QuestFarerGameEngine.dir/src/generator/Generator.cpp.o	a3d5ef8034863789
 2	1242	1773503323595392469	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o	993837bf60c8ffac
 2	891	1773503323243381189	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/LightingRenderer.cpp.o	7b3e8159b85f5def
-2	437	1773504067573385698	CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o	dca880fac8c9a608
-2	1499	1773504068633406164	CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o	c1b5ee06c23e3e70
-1499	1632	1773504068697407399	QuestFarerGameEngine	d19c1bedb5886d6e
