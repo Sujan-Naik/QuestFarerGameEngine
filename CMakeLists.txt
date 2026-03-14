@@ -22,8 +22,6 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/utils/Utils.cpp
         include/utils/Utils.h
         include/generator/Square.h
-        src/rendering/TerrainDSRenderer.cpp
-        include/rendering/TerrainDSRenderer.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
         include/mesh/Mesh.h
