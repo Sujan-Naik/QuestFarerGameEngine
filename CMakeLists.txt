@@ -26,11 +26,6 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/TerrainDSRenderer.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
-        include/cloud/Cloud.h
-        src/clouds/CloudRenderer.cpp
-        include/cloud/CloudRenderer.h
-        src/clouds/CloudSimulator.cpp
-        include/cloud/CloudSimulator.h
         include/mesh/Mesh.h
         include/rendering/MeshRenderer.h
         src/rendering/MeshRenderer.cpp

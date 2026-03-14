@@ -9,7 +9,6 @@ constexpr float HEIGHT_LOWER_BOUND = -10, HEIGHT_UPPER_BOUND = 400;
 constexpr int SIDE_LENGTH = (1 << SIZE) + 1;
 constexpr int HORIZONTAL_SCALE = 10;
 constexpr int EFFECTIVE_SIDE_LENGTH = SIDE_LENGTH * HORIZONTAL_SCALE;
-constexpr int CLOUD_CHANCE = 4;
 
 // -----------------------------------------------------------------------
 // Marching Cubes constants

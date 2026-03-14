@@ -7,7 +7,6 @@
 #include "../include/rendering/TerrainDSRenderer.h"
 #include "../include/rendering/TerrainMCRenderer.h"
 #include "../include/rendering/LightingRenderer.h"
-#include "../include/cloud/CloudRenderer.h"
 #include "../include/globals.h"
 #include "../include/model/Model.h"
 
@@ -38,8 +37,6 @@ std::unique_ptr<TerrainDSRenderer> terrainRenderer;
 std::unique_ptr<TerrainMCRenderer> terrainRenderer;
 #endif
 
-std::shared_ptr<CloudSimulator> cloudSimulator = std::make_shared<CloudSimulator>();
-std::unique_ptr<CloudRenderer> cloudRenderer;
 std::unique_ptr<LightingRenderer> lighting;
 
 const unsigned int SCR_WIDTH = 800;
@@ -153,7 +150,6 @@ int main()
     terrainRenderer->setTexture(texture1);  // <-- before setup
     terrainRenderer->setup();
 #endif
-    cloudRenderer = std::make_unique<CloudRenderer>(logger, cloudSimulator);
     lighting = std::make_unique<LightingRenderer>(logger);
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -173,7 +169,6 @@ int main()
     Model ourModel("resources/objects/backpack/backpack.obj");
 
 
-    cloudRenderer->setupVertexData();
     lighting->setupLighting();
 
     while (!glfwWindowShouldClose(window))
