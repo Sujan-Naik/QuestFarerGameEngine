@@ -13,6 +13,7 @@
 #include "../include/scene/components/PhysicsComponent.h"
 #include "../include/scene/objects/GameObject.h"
 #include "../include/scene/objects/CustomMeshObject.h"
+#include "../include/scene/objects/ModelObject.h"
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
@@ -152,23 +153,30 @@ void initialiseGameObjects(){
     unsigned int texture1;
     createTexture(texture1, "resources/images/grass.png");
 
-    auto* terrainRenderer = new TerrainMCRenderer(logger, std::move(terrainShader));
+    auto terrainRenderer = std::make_unique<TerrainMCRenderer>(logger, std::move(terrainShader));
     terrainRenderer->setTexture(texture1);
     terrainRenderer->setup();
 
-    gameObjects.push_back(std::make_unique<CustomMeshObject>(numEntities, terrainRenderer));
+    gameObjects.push_back(std::make_unique<CustomMeshObject>(numEntities, std::move(terrainRenderer)));
     numEntities++;
+
+
+    auto ourModel = std::make_unique<Model>("resources/objects/backpack/backpack.obj");
+    auto ourShader = std::make_unique<Shader>(
+            "../shader/vertex/model-loading.vs",
+            "../shader/fragment/model-loading.fs"
+    );
+
+    gameObjects.push_back( std::make_unique<ModelObject>(numEntities, std::move(ourModel), std::move(ourShader)));
+    numEntities++;
+
 
 //    lighting = std::make_unique<LightingRenderer>(logger);
 //    lighting->setupLighting();
 
 
-//    auto ourShader = std::make_unique<Shader>(
-//            "../shader/vertex/model-loading.vs",
-//            "../shader/fragment/model-loading.fs"
-//    );
+
 //
-//    auto ourModel = std::make_unique<Model>("resources/objects/backpack/backpack.obj");
 }
 
 int main()
@@ -231,7 +239,6 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
 
 void processInput(GLFWwindow* window, double elapsed)
 {
-    std::cout << elapsed << std::endl;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
     {
         cursorEnabled = true;

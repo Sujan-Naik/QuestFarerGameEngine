@@ -6,10 +6,10 @@
 #include "GameObject.h"
 
 struct CustomMeshObject : GameObject {
-    MeshRenderer* renderer;
+    std::unique_ptr<MeshRenderer> renderer;
 
-    explicit CustomMeshObject(int id, MeshRenderer* renderer, bool active = true)
-            : GameObject(id, active), renderer(renderer) {}
+    explicit CustomMeshObject(int id, std::unique_ptr<MeshRenderer> renderer, bool active = true)
+            : GameObject(id, active), renderer(std::move(renderer)) {}
 
     void draw(const RenderContext& ctx) override {
         renderer->draw(ctx);
