@@ -71,7 +71,7 @@ void TerrainMCRenderer::setup()
     mesh.emplace(vertices, mcMeshData.indices, std::vector<Texture>{ tex }); // <-- was mesh->Draw(*shader)
 }
 
-void TerrainMCRenderer::draw(const RenderContext& ctx)
+void TerrainMCRenderer::draw(const RenderContext& ctx, glm::mat4 modelMatrix)
 {
     if (!mesh.has_value()) return;
 
@@ -86,14 +86,14 @@ void TerrainMCRenderer::draw(const RenderContext& ctx)
                                             EFFECTIVE_SIDE_LENGTH / 2.0f));
     shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(
-            EFFECTIVE_SIDE_LENGTH / 2.0f - (MC_GRID_X * MC_WORLD_SCALE) / 2.0f,
-            0.0f,
-            EFFECTIVE_SIDE_LENGTH / 2.0f - (MC_GRID_Z * MC_WORLD_SCALE) / 2.0f
-    ));
-    model = glm::scale(model, glm::vec3(MC_WORLD_SCALE));
-    shader->setMat4("model", model);
+
+//    modelMatrix = glm::translate(model, glm::vec3(
+//            EFFECTIVE_SIDE_LENGTH / 2.0f - (MC_GRID_X * MC_WORLD_SCALE) / 2.0f,
+//            0.0f,
+//            EFFECTIVE_SIDE_LENGTH / 2.0f - (MC_GRID_Z * MC_WORLD_SCALE) / 2.0f
+//    ));
+//    model = glm::scale(model, glm::vec3(MC_WORLD_SCALE));
+    shader->setMat4("model", modelMatrix);
 
 
     glActiveTexture(GL_TEXTURE0);

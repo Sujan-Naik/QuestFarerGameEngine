@@ -3,16 +3,16 @@
 
 #include "Component.h"
 
-class AIComponent: Component{
+class AIComponent: public Component{
 public:
 
-    AIComponent() = default;
-
+    explicit AIComponent(int entityId) : Component(entityId) {}
+    AIComponent() : Component(-1) {}
     void receive(int message) override {
 
     }
 
-    void update() override{
+    void update(GameObject* gameObject) override{
 
     }
 };

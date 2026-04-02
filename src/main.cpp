@@ -31,7 +31,6 @@ const unsigned int SCR_HEIGHT = 600;
 const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
 
 bool  cursorEnabled = false;
-const double MS_PER_UPDATE = 100.0/6.0;
 
 
 
@@ -100,14 +99,22 @@ GLFWwindow* initialiseGLFW()
 
 
 const int MAX_ENTITIES = 100;
-int numEntities = 0;
-AIComponent* aiComponents =
+int aiComponentsSparse[MAX_ENTITIES];
+AIComponent* aiComponentsDense =
         new AIComponent[MAX_ENTITIES];
-PhysicsComponent* physicsComponents =
+
+int aiComponentsAmount = 0;
+
+int physicsComponentsSparse[MAX_ENTITIES];
+PhysicsComponent* physicsComponentsDense =
         new PhysicsComponent[MAX_ENTITIES];
 
+int physicsComponentsAmount = 0;
 
-std::vector<std::unique_ptr<GameObject>> gameObjects;
+
+std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
+int numEntities = 0;
+
 
 void render(double timeScale){
 
@@ -116,7 +123,7 @@ void render(double timeScale){
 
 //    lighting->drawLighting(camera->getPosition(), projection, view);
 
-    RenderContext renderContext{camera->getPosition(), projection, view, {0, 0, 0}};
+    RenderContext renderContext{camera->getPosition(), projection, view};
     // Draw to screen.
     for (int i = 0; i < numEntities; i++)
     {
@@ -128,19 +135,59 @@ void render(double timeScale){
 void update(){
 
     // Process AI.
-    for (int i = 0; i < numEntities; i++)
+    logger->log(DEBUG, "AI Component updates begin: " + std::to_string(aiComponentsAmount));
+
+    for (int i = 0; i < aiComponentsAmount; i++)
     {
-        aiComponents[i].update();
+        aiComponentsDense[i].update( gameObjects[aiComponentsDense[i].getEntityId()].get());
     }
 
+    logger->log(DEBUG, "Physics Component updates begin: " + std::to_string(physicsComponentsAmount));
+
+
     // Update physics.
-    for (int i = 0; i < numEntities; i++)
+    for (int i = 0; i < physicsComponentsAmount; i++)
     {
-        physicsComponents[i].update();
+        physicsComponentsDense[i].update(gameObjects[physicsComponentsDense[i].getEntityId()].get());
     }
 
 
 }
+
+
+void addAIComponent(int entityID, const AIComponent& component) {
+    aiComponentsSparse[entityID] = aiComponentsAmount;
+    aiComponentsDense[aiComponentsAmount] = component;
+    aiComponentsAmount++;
+}
+
+void removeAIComponent(int entityID) {
+    int denseIndex = aiComponentsSparse[entityID];
+
+    aiComponentsDense[denseIndex] = aiComponentsDense[aiComponentsAmount - 1];
+    aiComponentsSparse[entityID] = -1;
+
+    aiComponentsAmount--;
+}
+
+
+void addPhysicsComponent(int entityID, const PhysicsComponent& component) {
+    physicsComponentsSparse[entityID] = physicsComponentsAmount;
+    physicsComponentsDense[physicsComponentsAmount] = component;
+    physicsComponentsAmount++;
+}
+
+void removePhysicsComponent(int entityID) {
+    int denseIndex = physicsComponentsSparse[entityID];
+
+    physicsComponentsDense[denseIndex] = physicsComponentsDense[physicsComponentsAmount - 1];
+    physicsComponentsSparse[entityID] = -1;
+
+    physicsComponentsAmount--;
+}
+
+
+
 
 void initialiseGameObjects(){
     auto terrainShader = std::make_unique<Shader>(
@@ -157,7 +204,10 @@ void initialiseGameObjects(){
     terrainRenderer->setTexture(texture1);
     terrainRenderer->setup();
 
-    gameObjects.push_back(std::make_unique<CustomMeshObject>(numEntities, std::move(terrainRenderer)));
+    gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(terrainRenderer), glm::mat4(1.0));
+
+
+
     numEntities++;
 
 
@@ -167,7 +217,13 @@ void initialiseGameObjects(){
             "../shader/fragment/model-loading.fs"
     );
 
-    gameObjects.push_back( std::make_unique<ModelObject>(numEntities, std::move(ourModel), std::move(ourShader)));
+    gameObjects[numEntities] = std::make_unique<ModelObject>(numEntities, std::move(ourModel), std::move(ourShader),glm::mat4(1.0));
+
+
+    addPhysicsComponent(numEntities, *new PhysicsComponent(numEntities));
+
+
+
     numEntities++;
 
 
@@ -176,7 +232,7 @@ void initialiseGameObjects(){
 
 
 
-//
+
 }
 
 int main()
@@ -215,13 +271,12 @@ int main()
 
         clearScreen();
 
-        while (lag >= MS_PER_UPDATE)
+        while (lag >= FIXED_TIMESTEP)
         {
             update();
-            lag -= MS_PER_UPDATE;
+            lag -= FIXED_TIMESTEP;
         }
-
-        render(lag / MS_PER_UPDATE);
+        render(lag / FIXED_TIMESTEP);
 
 
         glfwSwapBuffers(window);

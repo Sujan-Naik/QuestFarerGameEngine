@@ -22,7 +22,7 @@ public:
 
     void setup() override;
 
-    void draw(const RenderContext& ctx) override;
+    void draw(const RenderContext& ctx, glm::mat4 modelMatrix) override;
 
 };
 

@@ -8,11 +8,17 @@
 struct CustomMeshObject : GameObject {
     std::unique_ptr<MeshRenderer> renderer;
 
-    explicit CustomMeshObject(int id, std::unique_ptr<MeshRenderer> renderer, bool active = true)
-            : GameObject(id, active), renderer(std::move(renderer)) {}
+    explicit CustomMeshObject(int id, std::unique_ptr<MeshRenderer> renderer, glm::mat4 modelMatrix, bool active = true)
+            : GameObject(id, modelMatrix, active), renderer(std::move(renderer)) {}
+
+
+
+    void drawCustom(const RenderContext& ctx, glm::mat4 modelMatrix) {
+        renderer->draw(ctx, modelMatrix);
+    }
 
     void draw(const RenderContext& ctx) override {
-        renderer->draw(ctx);
+        drawCustom(ctx, modelMatrix);
     }
 };
 #endif //QUESTFARERGAMEENGINE_CUSTOMMESHOBJECT_H

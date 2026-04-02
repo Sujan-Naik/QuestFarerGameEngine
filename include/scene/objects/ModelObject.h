@@ -10,11 +10,13 @@ struct ModelObject : GameObject {
     std::unique_ptr<Shader> shader;
 
 
-    explicit ModelObject(int id, std::unique_ptr<Model> model,std::unique_ptr<Shader> shader, bool active = true)
-            : GameObject(id, active), model(std::move(model)), shader(std::move(shader)) {}
+    explicit ModelObject(int id, std::unique_ptr<Model> model,std::unique_ptr<Shader> shader, glm::mat4 modelMatrix, bool active = true)
+            : GameObject(id,modelMatrix, active), model(std::move(model)), shader(std::move(shader)) {}
 
     void draw(const RenderContext& ctx) override {
         shader->setMat4("view", ctx.view);
+        shader->setMat4("projection", ctx.projection);
+        shader->setMat4("model", modelMatrix);
         model->Draw(*shader);
     }
 

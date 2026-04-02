@@ -1,6 +1,11 @@
 #ifndef QUESTFARERGAMEENGINE_GLOBALS_H
 #define QUESTFARERGAMEENGINE_GLOBALS_H
 
+const double FIXED_TIMESTEP = 1.0 / 60.0;
+const glm::vec3 GRAVITY = glm::vec3(0.0f, -9.81f, 0.0f);
+
+
+
 // -----------------------------------------------------------------------
 // Diamond Square constants
 // -----------------------------------------------------------------------

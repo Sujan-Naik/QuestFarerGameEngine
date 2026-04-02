@@ -46,7 +46,7 @@ public:
      * @param view View matrix for camera transformation
      * @param offset An offset used for some arbitrary manipulation of a rendered object within the engine
      */
-    virtual void draw(const RenderContext& ctx) = 0;
+    virtual void draw(const RenderContext& ctx, glm::mat4 modelMatrix) = 0;
 };
 
 
