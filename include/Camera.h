@@ -4,12 +4,12 @@
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
 
-enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT };
+enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
 class Camera
 {
 public:
-    static constexpr float DEFAULT_SPEED       = 500.0f;
+    static constexpr float DEFAULT_SPEED       = 100.0f;
     static constexpr float DEFAULT_SENSITIVITY = 0.1f;
     static constexpr float DEFAULT_FOV         = 45.0f;
 

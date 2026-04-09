@@ -9,7 +9,7 @@ const unsigned int SCR_HEIGHT = 600;
 const double FIXED_TIMESTEP = 1.0 / 60.0;
 const glm::vec3 GRAVITY = glm::vec3(0.0f, -9.81f, 0.0f);
 
-
+const float ACTION_COOLDOWN = 0.2f;
 
 // -----------------------------------------------------------------------
 // Diamond Square constants

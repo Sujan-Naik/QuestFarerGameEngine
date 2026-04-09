@@ -29,6 +29,8 @@ private:
 
     void handleRightClick();
 
+    double actionTimer;
+
 public:
 
     Player(std::shared_ptr<Grid> gridPtr);

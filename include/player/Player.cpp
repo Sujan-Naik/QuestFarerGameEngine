@@ -16,6 +16,8 @@ const RenderContext Player::getRenderContext() const {
 
 void Player::processInput(GLFWwindow* window, double elapsed)
 {
+    actionTimer -= elapsed;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
     {
         cursorEnabled = true;
@@ -30,6 +32,30 @@ void Player::processInput(GLFWwindow* window, double elapsed)
         camera->processKeyboard(CameraMovement::LEFT, elapsed);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera->processKeyboard(CameraMovement::RIGHT, elapsed);
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::UP, elapsed);
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::DOWN, elapsed);
+
+
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        if (!cursorEnabled && actionTimer<=0.0f)
+        {
+            RaycastResult result = raycast(100);
+
+            if (result.hit){
+                grid->setVoxel(result.voxelPos.x,result.voxelPos.y, result.voxelPos.z, VoxelType::AIR );
+                actionTimer = ACTION_COOLDOWN;
+            }
+        }
+    }
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        if (actionTimer<=0.0f) {
+            handleRightClick();
+            actionTimer = ACTION_COOLDOWN;
+        }
+    }
+
 }
 
 
@@ -73,17 +99,7 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
             player->cursorEnabled = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
-        else
-        {
-            RaycastResult result = player->raycast(100);
 
-            if (result.hit){
-                player->grid->setVoxel(result.voxelPos.x,result.voxelPos.y, result.voxelPos.z, VoxelType::AIR );
-
-            }
-        }
-    } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
-        player->handleRightClick();
     }
 }
 

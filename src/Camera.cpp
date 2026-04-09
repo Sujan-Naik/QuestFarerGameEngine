@@ -16,6 +16,8 @@ void Camera::processKeyboard(CameraMovement direction, double deltaTime)
         case CameraMovement::BACKWARD: position -= front * speed; break;
         case CameraMovement::LEFT:     position -= right * speed; break;
         case CameraMovement::RIGHT:    position += right * speed; break;
+        case CameraMovement::UP:    position += up * speed; break;
+        case CameraMovement::DOWN:    position -= up * speed; break;
     }
 }
 
