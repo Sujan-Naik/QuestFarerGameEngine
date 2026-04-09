@@ -1,9 +1,12 @@
 #include <utility>
+#include <iostream>
 
 #include "../../include/player/Player.h"
 
 
 Player::Player(std::shared_ptr<Grid> gridPtr) : grid(std::move(gridPtr)) {}
+
+
 
 
 const RenderContext Player::getRenderContext() const {
@@ -14,9 +17,10 @@ const RenderContext Player::getRenderContext() const {
     return RenderContext{camera->getPosition(), projection, view};
 }
 
-void Player::processInput(GLFWwindow* window, double elapsed)
+void Player::processInput(GLFWwindow* window, double timeScale)
 {
-    actionTimer -= elapsed;
+    std::cout << timeScale << std::endl;
+    actionTimer -= FIXED_TIMESTEP * timeScale;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
     {
@@ -25,17 +29,17 @@ void Player::processInput(GLFWwindow* window, double elapsed)
     }
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::FORWARD, elapsed);
+        camera->processKeyboard(CameraMovement::FORWARD, timeScale);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::BACKWARD, elapsed);
+        camera->processKeyboard(CameraMovement::BACKWARD, timeScale);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::LEFT, elapsed);
+        camera->processKeyboard(CameraMovement::LEFT, timeScale);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::RIGHT, elapsed);
+        camera->processKeyboard(CameraMovement::RIGHT, timeScale);
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::UP, elapsed);
+        camera->processKeyboard(CameraMovement::UP, timeScale);
     if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::DOWN, elapsed);
+        camera->processKeyboard(CameraMovement::DOWN, timeScale);
 
 
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
