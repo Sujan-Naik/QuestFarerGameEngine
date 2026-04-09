@@ -57,6 +57,10 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/animation/MeshAnimation.h
         include/animation/Animation.h
         include/scene/objects/AnimationModelObject.h
+        src/physics/PhysicsSystem.cpp
+        include/physics/PhysicsSystem.h
+        include/world/World.cpp
+        include/world/World.h
 )
 
 add_custom_command(

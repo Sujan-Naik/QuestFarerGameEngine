@@ -13,8 +13,8 @@ struct AnimationModelObject: GameObject {
         std::unique_ptr<Shader> shader;
     std::unique_ptr<animation::Animator> animator;
 
-         AnimationModelObject(int id, std::unique_ptr<animation::Model> model, std::unique_ptr<Shader> shader, glm::mat4 modelMatrix, std::unique_ptr<animation::Animator> animator , bool active = true)
-                : GameObject(id,modelMatrix, active), model(std::move(model)), shader(std::move(shader)), animator(std::move(animator)) {}
+         AnimationModelObject(int id, std::unique_ptr<animation::Model> model, std::unique_ptr<Shader> shader, Transform transform, std::unique_ptr<animation::Animator> animator , bool active = true)
+                : GameObject(id,transform, active), model(std::move(model)), shader(std::move(shader)), animator(std::move(animator)) {}
 
         void draw(const RenderContext& ctx) override {
 
@@ -27,7 +27,7 @@ struct AnimationModelObject: GameObject {
 
             shader->setMat4("view", ctx.view);
             shader->setMat4("projection", ctx.projection);
-            shader->setMat4("model", modelMatrix);
+            shader->setMat4("model", getModelMatrix());
             model->Draw(*shader);
             if (animator){
                 animator->UpdateAnimation(FIXED_TIMESTEP);
