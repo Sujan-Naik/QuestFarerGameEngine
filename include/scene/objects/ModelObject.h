@@ -1,0 +1,30 @@
+#ifndef QUESTFARERGAMEENGINE_MODELOBJECT_H
+#define QUESTFARERGAMEENGINE_MODELOBJECT_H
+
+#include <memory>
+#include "../../model/Model.h"
+#include "GameObject.h"
+
+struct ModelObject : GameObject {
+    std::unique_ptr<Model> model;
+    std::unique_ptr<Shader> shader;
+
+
+    explicit ModelObject(int id, std::unique_ptr<Model> model,std::unique_ptr<Shader> shader, glm::mat4 modelMatrix, bool active = true)
+            : GameObject(id,modelMatrix, active), model(std::move(model)), shader(std::move(shader)) {}
+
+    void draw(const RenderContext& ctx) override {
+
+        shader->use();
+
+        shader->setMat4("view", ctx.view);
+        shader->setMat4("projection", ctx.projection);
+        shader->setMat4("model", modelMatrix);
+        model->Draw(*shader);
+    }
+
+
+};
+
+
+#endif //QUESTFARERGAMEENGINE_MODELOBJECT_H

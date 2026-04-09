@@ -3,8 +3,7 @@ project(QuestFarerGameEngine)
 
 set(CMAKE_CXX_STANDARD 23)
 
-configure_file(images/grass.png grass.png COPYONLY)
-configure_file(images/cloud.png cloud.png COPYONLY)
+
 
 add_executable(QuestFarerGameEngine src/main.cpp
         external/KHR/khrplatform.h
@@ -17,27 +16,59 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/Camera.cpp
         include/Camera.h
         include/logger/Logger.h
-        src/generator/Generator.cpp
-        include/generator/Generator.h
-        include/generator/Grid.h
         src/utils/Utils.cpp
         include/utils/Utils.h
-        include/generator/Square.h
-        src/rendering/TerrainRenderer.cpp
-        include/rendering/TerrainRenderer.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
-        include/cloud/Cloud.h
-        src/clouds/CloudRenderer.cpp
-        include/cloud/CloudRenderer.h
-        src/clouds/CloudSimulator.cpp
-        include/cloud/CloudSimulator.h
         include/mesh/Mesh.h
         include/rendering/MeshRenderer.h
         src/rendering/MeshRenderer.cpp
-        src/generator/Square.cpp
         include/globals.h
+        external/MC/MC.h
+        external/MC/noise.h
+        src/rendering/TerrainMCRenderer.cpp
+        include/rendering/TerrainMCRenderer.h
+        include/model/Model.h
+        include/scene/components/Component.h
+        include/scene/components/ContainerObject.h
+        include/scene/objects/GameObject.h
+        include/scene/components/AIComponent.h
+        include/scene/components/PhysicsComponent.h
+        include/scene/objects/ModelObject.h
+        include/scene/objects/CustomMeshObject.h
+        include/rendering/RenderContext.h
+        include/scene/geometry/Transform.h
+        include/voxel/VoxelType.h
+        src/voxel/Chunk.cpp
+        include/voxel/Chunk.h
+        src/voxel/Grid.cpp
+        include/voxel/Grid.h
+        src/voxel/VoxelQuery.cpp
+        include/voxel/VoxelQuery.h
+        src/rendering/VoxelRenderer.cpp
+        include/rendering/VoxelRenderer.h
+        src/player/Player.cpp
+        include/player/Player.h
+        include/animation/Animator.h
+        include/animation/Bone.h
+        include/animation/assimp_glm_helpers.h
+        include/animation/model_animation.h
+        include/animation/animdata.h
+        include/animation/MeshAnimation.h
+        include/animation/Animation.h
+        include/scene/objects/AnimationModelObject.h
 )
+
+add_custom_command(
+        TARGET QuestFarerGameEngine POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/resources
+        ${CMAKE_BINARY_DIR}/resources
+        COMMENT "Copying resources..."
+)
+
+find_package(assimp REQUIRED)
+target_link_libraries(QuestFarerGameEngine assimp)
 
 find_package(glfw3 3.3 REQUIRED)
 target_link_libraries(QuestFarerGameEngine glfw)
