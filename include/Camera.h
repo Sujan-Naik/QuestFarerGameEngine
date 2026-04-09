@@ -9,9 +9,9 @@ enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 class Camera
 {
 public:
-    static constexpr float DEFAULT_SPEED       = 100.0f;
-    static constexpr float DEFAULT_SENSITIVITY = 0.1f;
-    static constexpr float DEFAULT_FOV         = 45.0f;
+    static constexpr float DEFAULT_SPEED       = 0.1;
+    static constexpr float DEFAULT_SENSITIVITY = 0.01f;
+    static constexpr float DEFAULT_FOV         = 70.0f;
 
     Camera();
 
