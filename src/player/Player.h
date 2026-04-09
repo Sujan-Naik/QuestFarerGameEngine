@@ -27,6 +27,7 @@ private:
     const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
     bool  cursorEnabled = false;
 
+    void handleRightClick();
 
 public:
 

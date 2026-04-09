@@ -45,6 +45,22 @@ void Player::mouse_callback(GLFWwindow* window, double xpos, double ypos)
     }
 }
 
+void Player::handleRightClick() {
+    RaycastResult result = raycast(100.0f);
+
+    if (result.hit) {
+        // The magic formula: Hit Position + Normal = Adjacent Space
+        glm::ivec3 placePos = result.voxelPos + result.normal;
+
+        // Ensure we don't place a block inside our own head
+        glm::ivec3 playerPos = glm::floor(camera->getPosition());
+        if (placePos != playerPos) {
+            grid->setVoxel(placePos.x, placePos.y, placePos.z, VoxelType::DIRT);
+        }
+    }
+}
+
+
 void Player::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
     Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
@@ -66,6 +82,8 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
 
             }
         }
+    } else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS){
+        player->handleRightClick();
     }
 }
 

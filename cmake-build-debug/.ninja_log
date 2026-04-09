@@ -45,3 +45,6 @@
 2	1266	1775746739850080621	CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o	dcf11c5db55d6af2
 1	1574	1775746760941213027	CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o	c1b5ee06c23e3e70
 1574	1711	1775746761017209893	QuestFarerGameEngine	8dbe9142a82836a7
+1	822	1775746918117677648	CMakeFiles/QuestFarerGameEngine.dir/include/player/Player.cpp.o	6e0fc0e253e19d13
+1	1725	1775746919017764591	CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o	c1b5ee06c23e3e70
+1725	1868	1775746919097772285	QuestFarerGameEngine	8dbe9142a82836a7
