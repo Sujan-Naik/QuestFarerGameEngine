@@ -14,6 +14,9 @@ struct ModelObject : GameObject {
             : GameObject(id,modelMatrix, active), model(std::move(model)), shader(std::move(shader)) {}
 
     void draw(const RenderContext& ctx) override {
+
+        shader->use();
+
         shader->setMat4("view", ctx.view);
         shader->setMat4("projection", ctx.projection);
         shader->setMat4("model", modelMatrix);

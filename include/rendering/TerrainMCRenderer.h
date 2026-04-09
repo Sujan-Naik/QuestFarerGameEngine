@@ -11,7 +11,7 @@
 class TerrainMCRenderer : public MeshRenderer {
 
 private:
-    std::optional<Mesh> mesh;   // owns the VAO/VBO/EBO via the Mesh class
+    std::optional<Mesh> mesh;   // owns the VAO/VBO/EBO via the MeshAnimation class
     unsigned int textureId = 0; // GL texture handle passed in from main
 
 public:

@@ -1,5 +1,5 @@
 /**
- * Taken from https://learnopengl.com/Model-Loading/Mesh source at
+ * Taken from https://learnopengl.com/Model-Loading/MeshAnimation source at
  * https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/mesh.h
  */
 

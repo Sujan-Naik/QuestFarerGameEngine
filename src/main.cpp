@@ -15,7 +15,11 @@
 #include "../include/scene/objects/CustomMeshObject.h"
 #include "../include/scene/objects/ModelObject.h"
 #include "../include/rendering/VoxelRenderer.h"
-#include "player/Player.h"
+#include "../include/player/Player.h"
+#include "../include/animation/model_animation.h"
+#include "../include/animation/Animation.h"
+#include "../include/animation/Animator.h"
+#include "../include/scene/objects/AnimationModelObject.h"
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
@@ -183,6 +187,25 @@ void removePhysicsComponent(int entityID) {
 
 
 
+void initialisePlayer(){
+
+
+    std::unique_ptr<animation::Model> ourModel = std::make_unique<animation::Model>("resources/objects/animation/vampire/dancing_vampire.dae");
+    auto ourShader = std::make_unique<Shader>(
+            "../shader/vertex/anim_model.vs",
+            "../shader/fragment/anim_model.fs"
+    );
+
+    std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>("resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
+    std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(std::move(danceAnimation));
+
+    gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel), std::move(ourShader),glm::mat4(1.0), std::move(animator));
+
+    numEntities++;
+}
+
+
+
 void initialiseGameObjects(){
     auto terrainShader = std::make_unique<Shader>(
             "../shader/vertex/terrain-shader.vs",
@@ -261,6 +284,8 @@ int main()
     stbi_set_flip_vertically_on_load(true);
 
 //    initialiseGameObjects();
+
+    initialisePlayer();
     createVoxels();
 
     double previous = glfwGetTime();
