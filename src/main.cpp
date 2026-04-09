@@ -1,117 +1,76 @@
+#define GLM_ENABLE_EXPERIMENTAL
 
 #include <iostream>
 #include <glad/glad.h>
 #include "../include/rendering/Shader.h"
 #include "../include/Camera.h"
 #include "../include/logger/Logger.h"
-#include "../include/generator/Generator.h"
-#include "../include/rendering/TerrainRenderer.h"
+#include "../include/rendering/TerrainMCRenderer.h"
 #include "../include/rendering/LightingRenderer.h"
-#include "../include/cloud/CloudRenderer.h"
 #include "../include/globals.h"
+#include "../include/model/Model.h"
+#include "../include/scene/components/AIComponent.h"
+#include "../include/scene/components/PhysicsComponent.h"
+#include "../include/scene/objects/GameObject.h"
+#include "../include/scene/objects/CustomMeshObject.h"
+#include "../include/scene/objects/ModelObject.h"
+#include "../include/rendering/VoxelRenderer.h"
+#include "../include/player/Player.h"
+#include "../include/animation/model_animation.h"
+#include "../include/animation/Animation.h"
+#include "../include/animation/Animator.h"
+#include "../include/scene/objects/AnimationModelObject.h"
 
 #include <GLFW/glfw3.h>
-#include <cmath>
 #include <stb/stb_image.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
-#define GLM_ENABLE_EXPERIMENTAL
 
-std::unique_ptr<Camera> camera = std::make_unique<Camera>();
 
 std::shared_ptr<Logger> logger = std::make_shared<Logger>("debug.txt");
-
-constexpr float TERRAIN_SIMULATION_CD = 1.0f;
-float lastTerrainSimulateTime;
-std::shared_ptr<Generator> generator = std::make_shared<Generator>(SIZE, HEIGHT_LOWER_BOUND, HEIGHT_UPPER_BOUND);
+std::shared_ptr<Grid> grid = std::make_shared<Grid>();
+std::shared_ptr<Player> player = std::make_shared<Player>(grid);
 
 
-
-std::unique_ptr<TerrainRenderer> terrainRenderer;
-std::shared_ptr<CloudSimulator> cloudSimulator = std::make_shared<CloudSimulator>();
-std::unique_ptr<CloudRenderer> cloudRenderer;
-std::unique_ptr<LightingRenderer> lighting;
+std::unique_ptr<LightingRenderer>  lighting;
 
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
 
-bool firstMouse = true;
-float yaw   = -90.0f;	// yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right so we initially rotate a bit to the left.
-float pitch =  0.0f;
-float lastX =  800.0f / 2.0;
-float lastY =  600.0 / 2.0;
-float fov   =  45.0f;
-
-
-// timing
-float deltaTime = 0.0f;	// time between current frame and last frame
-float lastFrame = 0.0f;
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow *window);
+void clearScreen();
 
-
-void handleRendering(GLFWwindow *window);
-
-glm::mat4 getViewMatrix();
-glm::mat4 getProjectionMatrix();
-
-void createTexture(unsigned int& texture, char * path){
+void createTexture(unsigned int& texture, const char* path)
+{
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D, texture);
-    // set the texture wrapping parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // load image, create texture and generate mipmaps
+
     int width, height, nrChannels;
-    stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-    unsigned char *data = stbi_load(path, &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        GLint textureFormat;
-        switch (nrChannels){
-            case 1:
-                textureFormat = GL_RED;
-                break;
-            case 3:
-                textureFormat = GL_RGB;
-                break;
-            case 4:
-                textureFormat = GL_RGBA;
-                break;
-            default:
-                textureFormat = GL_RGB;
-                break;
-        }
-        glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, width, height, 0, textureFormat, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+    if (!data)
+        throw std::runtime_error("Failed to load texture");
+
+    GLint textureFormat;
+    switch (nrChannels) {
+        case 1:  textureFormat = GL_RED;  break;
+        case 3:  textureFormat = GL_RGB;  break;
+        case 4:  textureFormat = GL_RGBA; break;
+        default: textureFormat = GL_RGB;  break;
     }
-    else
-    {
-        throw runtime_error("Failed to load texture");
-    }
+
+    glTexImage2D(GL_TEXTURE_2D, 0, textureFormat, width, height, 0, textureFormat, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
     stbi_image_free(data);
 }
 
-int main()
+GLFWwindow* initialiseGLFW()
 {
-
-    camera->setCameraPos({EFFECTIVE_SIDE_LENGTH/2, HEIGHT_UPPER_BOUND * 1.5,EFFECTIVE_SIDE_LENGTH/2});
     glfwInit();
-
-
-    // Designates application version as OpenGL 3.3
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
@@ -119,208 +78,254 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-
-    GLFWwindow* window = glfwCreateWindow(800, 600, "QuestFarer Dynamic World Generation Demo", nullptr, nullptr);
-    if (window == nullptr)
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "QuestFarer Dynamic World Generation Demo", nullptr, nullptr);
+    if (!window)
     {
-        std::cout << "Failed to create GLFW window" << std::endl;
+        std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        return -1;
+        return nullptr;
     }
-    glfwMakeContextCurrent(window);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetScrollCallback(window, scroll_callback);
 
+    glfwMakeContextCurrent(window);
+    glfwSetWindowUserPointer(window, player.get());
+
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, Player::mouse_callback);
+    glfwSetMouseButtonCallback(window, Player::mouse_button_callback);
+    glfwSetScrollCallback(window, Player::scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+
+    return window;
+}
+
+
+const int MAX_ENTITIES = 100;
+int aiComponentsSparse[MAX_ENTITIES];
+AIComponent* aiComponentsDense =
+        new AIComponent[MAX_ENTITIES];
+
+int aiComponentsAmount = 0;
+
+int physicsComponentsSparse[MAX_ENTITIES];
+PhysicsComponent* physicsComponentsDense =
+        new PhysicsComponent[MAX_ENTITIES];
+
+int physicsComponentsAmount = 0;
+
+
+std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
+int numEntities = 0;
+
+
+void render(double timeScale){
+
+    RenderContext renderContext = player->getRenderContext();
+
+    // Draw to screen.
+    for (int i = 0; i < numEntities; i++)
+    {
+        gameObjects[i]->draw(renderContext);
+    }
+}
+
+
+void update(){
+
+    // Process AI.
+    logger->log(DEBUG, "AI Component updates begin: " + std::to_string(aiComponentsAmount));
+
+    for (int i = 0; i < aiComponentsAmount; i++)
+    {
+        aiComponentsDense[i].update( gameObjects[aiComponentsDense[i].getEntityId()].get());
+    }
+
+    logger->log(DEBUG, "Physics Component updates begin: " + std::to_string(physicsComponentsAmount));
+
+
+    // Update physics.
+    for (int i = 0; i < physicsComponentsAmount; i++)
+    {
+        physicsComponentsDense[i].update(gameObjects[physicsComponentsDense[i].getEntityId()].get());
+    }
+
+
+}
+
+
+void addAIComponent(int entityID, const AIComponent& component) {
+    aiComponentsSparse[entityID] = aiComponentsAmount;
+    aiComponentsDense[aiComponentsAmount] = component;
+    aiComponentsAmount++;
+}
+
+void removeAIComponent(int entityID) {
+    int denseIndex = aiComponentsSparse[entityID];
+
+    aiComponentsDense[denseIndex] = aiComponentsDense[aiComponentsAmount - 1];
+    aiComponentsSparse[entityID] = -1;
+
+    aiComponentsAmount--;
+}
+
+
+void addPhysicsComponent(int entityID, const PhysicsComponent& component) {
+    physicsComponentsSparse[entityID] = physicsComponentsAmount;
+    physicsComponentsDense[physicsComponentsAmount] = component;
+    physicsComponentsAmount++;
+}
+
+void removePhysicsComponent(int entityID) {
+    int denseIndex = physicsComponentsSparse[entityID];
+
+    physicsComponentsDense[denseIndex] = physicsComponentsDense[physicsComponentsAmount - 1];
+    physicsComponentsSparse[entityID] = -1;
+
+    physicsComponentsAmount--;
+}
+
+
+
+
+void initialisePlayer(){
+
+
+    std::unique_ptr<animation::Model> ourModel = std::make_unique<animation::Model>("resources/objects/animation/vampire/dancing_vampire.dae");
+    auto ourShader = std::make_unique<Shader>(
+            "../shader/vertex/anim_model.vs",
+            "../shader/fragment/anim_model.fs"
+    );
+
+    std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>("resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
+    std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(std::move(danceAnimation));
+
+    gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel), std::move(ourShader),glm::mat4(1.0), std::move(animator));
+
+    numEntities++;
+}
+
+
+
+void initialiseGameObjects(){
+    auto terrainShader = std::make_unique<Shader>(
+            "../shader/vertex/terrain-shader.vs",
+            "../shader/fragment/terrain-shader.fs"
+    );
+    terrainShader->use();
+    terrainShader->setInt("texture1", 0);
+
+    unsigned int texture1;
+    createTexture(texture1, "resources/images/grass.png");
+
+    auto terrainRenderer = std::make_unique<TerrainMCRenderer>(logger, std::move(terrainShader));
+    terrainRenderer->setTexture(texture1);
+    terrainRenderer->setup();
+
+    gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(terrainRenderer), glm::mat4(1.0));
+
+    numEntities++;
+
+
+    auto ourModel = std::make_unique<Model>("resources/objects/backpack/backpack.obj");
+    auto ourShader = std::make_unique<Shader>(
+            "../shader/vertex/model-loading.vs",
+            "../shader/fragment/model-loading.fs"
+    );
+
+    gameObjects[numEntities] = std::make_unique<ModelObject>(numEntities, std::move(ourModel), std::move(ourShader),glm::mat4(1.0));
+    addPhysicsComponent(numEntities, *new PhysicsComponent(numEntities));
+
+    numEntities++;
+
+
+//    lighting = std::make_unique<LightingRenderer>(logger);
+//    lighting->setupLighting()
+
+}
+
+void createVoxels() {
+    auto voxelShader = std::make_unique<Shader>(
+            "../shader/vertex/voxel-shader.vs",
+            "../shader/fragment/voxel-shader.fs"
+    );
+    voxelShader->use();
+//    voxelShader->setInt("texture_diffuse1", 0);
+//
+//    unsigned int voxelTexture;
+//    createTexture(voxelTexture, "resources/images/voxel_atlas.png");
+
+
+    auto voxelRenderer = std::make_unique<VoxelRenderer>(logger, std::move(voxelShader),grid);
+    voxelRenderer->setup();
+
+    gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(voxelRenderer), glm::mat4(1.0));
+
+    numEntities++;
+}
+
+
+int main()
+{
+    GLFWwindow* window = initialiseGLFW();
+    if (!window)
+        return -1;
 
 
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
-        std::cout << "Failed to initialize GLAD" << std::endl;
+        std::cerr << "Failed to initialize GLAD" << std::endl;
         return -1;
     }
 
-
-
-
-    std::unique_ptr<Shader> terrainShader =
-            std::make_unique<Shader>("../shader/vertex/terrain-shader.vs", "../shader/fragment/terrain-shader.fs");
-    terrainShader->use();
-    terrainShader->setInt("texture1", 0);
-
-    generator->generateGrid();
-    terrainRenderer = std::make_unique<TerrainRenderer>(logger, std::move(terrainShader));
-    terrainRenderer->initTerrainData(generator);
-    terrainRenderer->setup();
-    lastTerrainSimulateTime = (float) glfwGetTime();
-
-
-    cloudRenderer = std::make_unique<CloudRenderer>(logger, cloudSimulator);
-    lighting = std::make_unique<LightingRenderer>(logger);
-
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glEnable(GL_DEPTH_TEST);
-
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    stbi_set_flip_vertically_on_load(true);
 
-    unsigned int texture1;
-    createTexture(texture1,"grass.png");
+//    initialiseGameObjects();
 
-    unsigned int texture2;
-    createTexture(texture2, "cloud.png");
+    initialisePlayer();
+    createVoxels();
 
+    double previous = glfwGetTime();
+    double lag = 0.0;
 
-    cloudRenderer ->setupVertexData();
-    lighting -> setupLighting();
-
-
-    // Render loop
-
-
-    while(!glfwWindowShouldClose(window))
+    while (!glfwWindowShouldClose(window))
     {
+        double current = glfwGetTime();
+        double elapsed = current - previous;
+        previous = current;
+        lag += elapsed;
 
-        auto currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
+        player -> processInput(window, elapsed);
 
+        clearScreen();
 
-
-        processInput(window);
-
-        handleRendering(window);
-
-
-        // bind textures on corresponding texture units
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
-        terrainRenderer->draw(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix(), {0,0,0});
-//        if (lastTerrainSimulateTime + TERRAIN_SIMULATION_CD < glfwGetTime()){
-//
-//        }
-
-        lighting ->drawLighting(camera->getCameraPos(), getProjectionMatrix(), getViewMatrix() );
+        while (lag >= FIXED_TIMESTEP)
+        {
+            update();
+            lag -= FIXED_TIMESTEP;
+        }
+        render(lag / FIXED_TIMESTEP);
 
 
-        glfwSwapBuffers(window); // Double buffer swaps colour buffer
-        glfwPollEvents(); // Keyboard input / mouse movement
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
-
 
     glfwTerminate();
     return 0;
-
 }
 
-
-glm::mat4 getViewMatrix(){
-
-    glm::mat4 view = glm::lookAt(camera->getCameraPos(), camera->getCameraPos() + camera->getCameraFront(), camera->getCameraUp());
-    return view;
-}
-
-glm::mat4 getProjectionMatrix(){
-    glm::mat4 projection = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 10000.0f);
-    return projection;
-}
-
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void framebuffer_size_callback(GLFWwindow*, int width, int height)
 {
     glViewport(0, 0, width, height);
 }
 
-bool cursorEnabled = false;
 
-
-void processInput(GLFWwindow *window)
+void clearScreen()
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-        if (!cursorEnabled){
-            cursorEnabled = true;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        }
-    }
-    float cameraSpeed = static_cast<float>( fov * 2.5 * deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->setCameraPos(camera->getCameraPos() + cameraSpeed * camera->getCameraFront());
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->setCameraPos(camera->getCameraPos() -  cameraSpeed * camera->getCameraFront());
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->setCameraPos(camera->getCameraPos() - glm::normalize(glm::cross(camera->getCameraFront(), camera->getCameraUp())) * cameraSpeed);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->setCameraPos(camera->getCameraPos() + glm::normalize(glm::cross(camera->getCameraFront(), camera->getCameraUp())) * cameraSpeed);
-
-}
-
-void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
-{
-    auto xpos = static_cast<float>(xposIn);
-    auto ypos = static_cast<float>(yposIn);
-
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-    lastX = xpos;
-    lastY = ypos;
-
-    float sensitivity = 0.1f; // change this value to your liking
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    yaw += xoffset;
-    pitch += yoffset;
-
-    // make sure that when pitch is out of bounds, screen doesn't get flipped
-    if (pitch > 89.0f)
-        pitch = 89.0f;
-    if (pitch < -89.0f)
-        pitch = -89.0f;
-
-    glm::vec3 front;
-    front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    front.y = sin(glm::radians(pitch));
-    front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    camera->setCameraFront(glm::normalize(front));
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
-    {
-        if (cursorEnabled){
-            cursorEnabled = false;
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-        }
-    }
-}
-
-
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    fov -= (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 70.0f)
-        fov = 70.0f;
-}
-
-void handleRendering(GLFWwindow *window){
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }

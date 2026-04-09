@@ -221,6 +221,12 @@ QuestFarerGameEngine_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 QuestFarerGameEngine_SOURCE_DIR:STATIC=/home/sujan/CLionProjects/QuestFarerGameEngine
 
+//The directory containing a CMake configuration file for assimp.
+assimp_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/assimp-5.2
+
+//The directory containing a CMake configuration file for draco.
+draco_DIR:PATH=/usr/lib/x86_64-linux-gnu/cmake/draco
+
 //The directory containing a CMake configuration file for glfw3.
 glfw3_DIR:PATH=/usr/local/lib/cmake/glfw3
 

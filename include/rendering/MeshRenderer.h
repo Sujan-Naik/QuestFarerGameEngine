@@ -6,7 +6,8 @@
 #include <utility>
 #include "glm/vec3.hpp"
 #include "../mesh/Mesh.h"
-#include "../generator/Generator.h"
+#include "../logger/Logger.h"
+#include "RenderContext.h"
 
 /**
  * @class MeshRenderer
@@ -45,7 +46,7 @@ public:
      * @param view View matrix for camera transformation
      * @param offset An offset used for some arbitrary manipulation of a rendered object within the engine
      */
-    virtual void draw(glm::vec3 cameraPosition, glm::mat4 projection, glm::mat4 view, glm::vec3 offset) = 0;
+    virtual void draw(const RenderContext& ctx, glm::mat4 modelMatrix) = 0;
 };
 
 

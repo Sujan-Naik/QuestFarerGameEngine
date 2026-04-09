@@ -1,0 +1,9 @@
+#ifndef QUESTFARERGAMEENGINE_VOXELTYPE_H
+#define QUESTFARERGAMEENGINE_VOXELTYPE_H
+
+
+#include <cstdint>
+
+enum class VoxelType : uint8_t { AIR = 0, STONE = 1, DIRT = 2 };
+
+#endif //QUESTFARERGAMEENGINE_VOXELTYPE_H
