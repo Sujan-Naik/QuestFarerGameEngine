@@ -18,10 +18,10 @@ class World {
 private:
 
     std::shared_ptr<Grid> grid = std::make_shared<Grid>();
+    std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
     std::shared_ptr<Player> player;
     std::unique_ptr<LightingRenderer>  lighting;
 
-    PhysicsSystem physicsSystem;
 
     // ECS State
     std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
@@ -97,6 +97,13 @@ private:
 
     void initialisePlayer(){
 
+        player = std::make_shared<Player>(grid);
+        glfwSetWindowUserPointer(window, player.get());
+
+    }
+
+
+    void createEntity(glm::vec3 pos){
         std::unique_ptr<animation::Model> ourModel = std::make_unique<animation::Model>("resources/objects/animation/vampire/dancing_vampire.dae");
         auto ourShader = std::make_unique<Shader>(
                 "../shader/vertex/anim_model.vs",
@@ -106,14 +113,29 @@ private:
         std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>("resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
         std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(std::move(danceAnimation));
 
-        gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel), std::move(ourShader),Transform{}, std::move(animator));
+        auto characterTransform = Transform{};
+        characterTransform.position = pos;
 
-        addPhysicsComponent(numEntities, *new PhysicsComponent(numEntities));
+        // Extract collision data before moving
+        PhysicsComponent physicsComp(numEntities);
+        std::vector<std::vector<glm::vec3>> meshVertices;
+        std::vector<std::vector<unsigned int>> meshIndices;
+
+        for (const auto& mesh : ourModel->meshes) {
+            std::vector<glm::vec3> positions;
+            for (const auto& vertex : mesh.vertices) {
+                positions.push_back(vertex.Position);
+            }
+            meshVertices.push_back(positions);
+            meshIndices.push_back(mesh.indices);
+        }
+        physicsComp.addCollisionMeshesFromModel(meshVertices, meshIndices);
+
+        // Now move the model
+        gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel), std::move(ourShader), characterTransform, std::move(animator));
+
+        addPhysicsComponent(numEntities, physicsComp);
         numEntities++;
-
-        player = std::make_shared<Player>(grid);
-        glfwSetWindowUserPointer(window, player.get());
-
     }
 
 public:
@@ -132,7 +154,7 @@ public:
 
         createVoxels();
         initialisePlayer();
-
+        createEntity({20, 20, 20});
     }
 
     void update(double timeScale){
@@ -156,6 +178,9 @@ public:
         {
             physicsComponentsDense[i].update(gameObjects[physicsComponentsDense[i].getEntityId()].get());
         }
+
+        physicsSystem->step(physicsComponentsDense, physicsComponentsAmount,
+                            gameObjects, grid, timeScale * FIXED_TIMESTEP);
     }
 
     void render(double timeScale){

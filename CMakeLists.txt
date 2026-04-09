@@ -61,6 +61,7 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/physics/PhysicsSystem.h
         include/world/World.cpp
         include/world/World.h
+        src/physics/PhysicsSystem.cpp
 )
 
 add_custom_command(
