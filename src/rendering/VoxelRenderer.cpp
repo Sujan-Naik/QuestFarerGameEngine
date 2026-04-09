@@ -1,27 +1,36 @@
 #include <utility>
 #include "../../include/globals.h"
-
 #include "../../include/rendering/VoxelRenderer.h"
+#include <glm/gtc/matrix_transform.hpp>
 
-void VoxelRenderer::setTexture(unsigned int glTextureId)
-{
+VoxelRenderer::VoxelRenderer(std::shared_ptr<Logger> logger, std::unique_ptr<Shader> shader,
+                             std::shared_ptr<Grid> grid)
+        : MeshRenderer(std::move(logger), std::move(shader)), grid(std::move(grid)) {
+}
+
+void VoxelRenderer::setTexture(unsigned int glTextureId) {
     textureId = glTextureId;
 }
 
-void addVoxelGeometry(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,
-                                     int x, int y, int z, std::shared_ptr<Chunk> chunk){
+void VoxelRenderer::setup() {
+    // Build mesh for each chunk
+    for (int xChunk = 0; xChunk < X_CHUNKS; xChunk++) {
+        for (int zChunk = 0; zChunk < Z_CHUNKS; zChunk++) {
+            rebuildChunkMesh(xChunk, zChunk);
+        }
+    }
+}
 
-    // World position (assuming chunk has origin at 0,0,0)
+void addVoxelGeometry(std::vector<Vertex>& vertices, std::vector<unsigned int>& indices,
+                      int x, int y, int z, std::shared_ptr<Chunk> chunk) {
+
     glm::vec3 pos(x, y, z);
     unsigned int baseIndex = vertices.size();
-
-    // Define the 6 faces of a cube
-    // Each face: 4 vertices + 2 triangles (6 indices)
 
     // Helper to check if neighbor is solid
     auto isSolid = [chunk](int nx, int ny, int nz) -> bool {
         if (nx < 0 || nx >= X_CHUNK_SIZE || ny < 0 || ny >= Y_CHUNK_SIZE || nz < 0 || nz >= Z_CHUNK_SIZE)
-            return false; // Treat out-of-bounds as air (will expose face)
+            return false;
         return chunk->voxels[nx][ny][nz] != VoxelType::AIR;
     };
 
@@ -86,48 +95,64 @@ void addVoxelGeometry(std::vector<Vertex>& vertices, std::vector<unsigned int>& 
     }
 }
 
-void VoxelRenderer::setup(){
-    std::vector<Vertex> vertices = {};
-    std::vector<unsigned int> indices = {};
+void VoxelRenderer::rebuildChunkMesh(int xChunk, int zChunk) {
+    std::vector<Vertex> vertices;
+    std::vector<unsigned int> indices;
+    vertices.reserve(X_CHUNK_SIZE * Y_CHUNK_SIZE * Z_CHUNK_SIZE * 24);
+    indices.reserve(X_CHUNK_SIZE * Y_CHUNK_SIZE * Z_CHUNK_SIZE * 36);
 
-    for (int xChunk = 0; xChunk < X_CHUNKS ; xChunk++ ){
-        for (int zChunk = 0; zChunk < Z_CHUNKS ; zChunk++ ) {
-            std::shared_ptr<Chunk> chunk = grid->chunks[{xChunk, zChunk}];
+    std::shared_ptr<Chunk> chunk = grid->chunks[{xChunk, zChunk}];
 
-            for (int x = 0; x < X_CHUNK_SIZE; x++) {
-                for (int y = 0; y < Y_CHUNK_SIZE; y++) {
-                    for (int z = 0; z < Z_CHUNK_SIZE; z++) {
-                        if (chunk->voxels[x][y][z] != VoxelType::AIR)
-                        {
-                            addVoxelGeometry(vertices, indices, x, y, z, chunk);
-                        }
-                    }
+    for (int x = 0; x < X_CHUNK_SIZE; x++) {
+        for (int y = 0; y < Y_CHUNK_SIZE; y++) {
+            for (int z = 0; z < Z_CHUNK_SIZE; z++) {
+                if (chunk->voxels[x][y][z] != VoxelType::AIR) {
+                    addVoxelGeometry(vertices, indices, x, y, z, chunk);
                 }
             }
-
         }
     }
 
     Texture tex;
-    tex.id   = textureId;
+    tex.id = textureId;
     tex.type = "texture_diffuse";
-    mesh = std::make_unique<Mesh>( vertices,  indices, std::vector<Texture>{tex});
 
+    // Store the mesh for this chunk
+    chunkMeshes[{xChunk, zChunk}] = std::make_unique<Mesh>(vertices, indices, std::vector<Texture>{tex});
+}
+
+
+
+void VoxelRenderer::updateDirtyChunks() {
+    for (int xChunk = 0; xChunk < X_CHUNKS; xChunk++) {
+        for (int zChunk = 0; zChunk < Z_CHUNKS; zChunk++) {
+            auto chunk = grid->chunks[{xChunk, zChunk}];
+            if (chunk->isDirty()) {
+                logger->log(DEBUG, "Rebuilding chunk: " + std::to_string(xChunk) + ", " + std::to_string(zChunk));
+                rebuildChunkMesh(xChunk, zChunk);
+                chunk->clearDirty();
+            }
+        }
+    }
 }
 
 void VoxelRenderer::draw(const RenderContext &ctx, glm::mat4 modelMatrix) {
+    updateDirtyChunks();
+
     shader->use();
     shader->setMat4("projection", ctx.projection);
     shader->setMat4("view", ctx.view);
-    shader->setMat4("model", modelMatrix);
 
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, textureId);
-    mesh->Draw(*shader);
-//    glBindTexture(GL_TEXTURE_2D, 0);
-}
+    for (int xChunk = 0; xChunk < X_CHUNKS; xChunk++) {
+        for (int zChunk = 0; zChunk < Z_CHUNKS; zChunk++) {
+            auto it = chunkMeshes.find({xChunk, zChunk});
+            if (it == chunkMeshes.end()) continue;
 
-VoxelRenderer::VoxelRenderer(std::shared_ptr<Logger> logger, std::unique_ptr<Shader> shader,
-                             std::shared_ptr<Grid> grid) : MeshRenderer(std::move(logger), std::move(shader)), grid(std::move(grid)) {
+            glm::mat4 chunkMatrix = modelMatrix * glm::translate(glm::mat4(1.0f),
+                                                                 glm::vec3(xChunk * X_CHUNK_SIZE, 0.0f, zChunk * Z_CHUNK_SIZE));
 
+            shader->setMat4("model", chunkMatrix);
+            it->second->Draw(*shader);
+        }
+    }
 }

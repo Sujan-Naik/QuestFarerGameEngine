@@ -64,3 +64,5 @@ void Camera::updateCameraVectors()
             sin(glm::radians(yaw)) * cos(glm::radians(pitch))
     });
 }
+
+const glm::vec3& Camera::getFront() const { return front; }

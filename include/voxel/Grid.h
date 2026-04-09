@@ -28,7 +28,12 @@ public:
 
 
     std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> chunks;
-};
+
+    void setVoxel(int worldX, int worldY, int worldZ, VoxelType type);
+
+    bool isSolid(int x, int y, int z) const;
+
+    };
 
 
 #endif //QUESTFARERGAMEENGINE_GRID_H

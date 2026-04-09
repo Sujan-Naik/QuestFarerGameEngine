@@ -15,6 +15,7 @@
 #include "../include/scene/objects/CustomMeshObject.h"
 #include "../include/scene/objects/ModelObject.h"
 #include "../include/rendering/VoxelRenderer.h"
+#include "player/Player.h"
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
@@ -24,26 +25,16 @@
 
 
 
-
-std::unique_ptr<Camera> camera = std::make_unique<Camera>();
 std::shared_ptr<Logger> logger = std::make_shared<Logger>("debug.txt");
 std::shared_ptr<Grid> grid = std::make_shared<Grid>();
+std::shared_ptr<Player> player = std::make_shared<Player>(grid);
+
 
 std::unique_ptr<LightingRenderer>  lighting;
 
-const unsigned int SCR_WIDTH  = 800;
-const unsigned int SCR_HEIGHT = 600;
-const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
-
-bool  cursorEnabled = false;
 
 
-
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void processInput(GLFWwindow* window, double elapsed);
 void clearScreen();
 
 void createTexture(unsigned int& texture, const char* path)
@@ -92,10 +83,12 @@ GLFWwindow* initialiseGLFW()
     }
 
     glfwMakeContextCurrent(window);
+    glfwSetWindowUserPointer(window, player.get());
+
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
-    glfwSetScrollCallback(window, scroll_callback);
+    glfwSetCursorPosCallback(window, Player::mouse_callback);
+    glfwSetMouseButtonCallback(window, Player::mouse_button_callback);
+    glfwSetScrollCallback(window, Player::scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
@@ -123,12 +116,8 @@ int numEntities = 0;
 
 void render(double timeScale){
 
-    const glm::mat4 view       = camera->getViewMatrix();
-    const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
+    RenderContext renderContext = player->getRenderContext();
 
-//    lighting->drawLighting(camera->getPosition(), projection, view);
-
-    RenderContext renderContext{camera->getPosition(), projection, view};
     // Draw to screen.
     for (int i = 0; i < numEntities; i++)
     {
@@ -284,7 +273,7 @@ int main()
         previous = current;
         lag += elapsed;
 
-        processInput(window, elapsed);
+        player -> processInput(window, elapsed);
 
         clearScreen();
 
@@ -309,43 +298,6 @@ void framebuffer_size_callback(GLFWwindow*, int width, int height)
     glViewport(0, 0, width, height);
 }
 
-void processInput(GLFWwindow* window, double elapsed)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
-    {
-        cursorEnabled = true;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-    }
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::FORWARD, elapsed);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::BACKWARD, elapsed);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::LEFT, elapsed);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::RIGHT, elapsed);
-}
-
-void mouse_callback(GLFWwindow*, double xpos, double ypos)
-{
-    if (!cursorEnabled)
-        camera->processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
-}
-
-void mouse_button_callback(GLFWwindow* window, int button, int action, int)
-{
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS && cursorEnabled)
-    {
-        cursorEnabled = false;
-        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-    }
-}
-
-void scroll_callback(GLFWwindow*, double, double yoffset)
-{
-    camera->processScroll(static_cast<float>(yoffset));
-}
 
 void clearScreen()
 {

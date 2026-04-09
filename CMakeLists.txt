@@ -47,7 +47,8 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/voxel/VoxelQuery.h
         src/rendering/VoxelRenderer.cpp
         include/rendering/VoxelRenderer.h
-        external/binaryGreedyMeshing/Mesher.h
+        include/player/Player.cpp
+        src/player/Player.h
 )
 
 add_custom_command(

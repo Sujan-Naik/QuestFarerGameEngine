@@ -1,0 +1,145 @@
+#include <utility>
+
+#include "../../src/player/Player.h"
+
+
+Player::Player(std::shared_ptr<Grid> gridPtr) : grid(std::move(gridPtr)) {}
+
+
+const RenderContext Player::getRenderContext() const {
+    const glm::mat4 view       = camera->getViewMatrix();
+    const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
+
+
+    return RenderContext{camera->getPosition(), projection, view};
+}
+
+void Player::processInput(GLFWwindow* window, double elapsed)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
+    {
+        cursorEnabled = true;
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::FORWARD, elapsed);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::BACKWARD, elapsed);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::LEFT, elapsed);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera->processKeyboard(CameraMovement::RIGHT, elapsed);
+}
+
+
+void Player::mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    // 1. Get the "this" pointer back from GLFW
+    Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+
+    // 2. Use the instance to access private variables/methods
+    if (player && !player->cursorEnabled)
+    {
+        player->processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
+    }
+}
+
+void Player::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+    Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+    if (!player) return;
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS)
+    {
+        if (player->cursorEnabled)
+        {
+            player->cursorEnabled = false;
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        }
+        else
+        {
+            RaycastResult result = player->raycast(100);
+
+            if (result.hit){
+                player->grid->setVoxel(result.voxelPos.x,result.voxelPos.y, result.voxelPos.z, VoxelType::AIR );
+
+            }
+        }
+    }
+}
+
+
+void Player::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
+
+    if (player)
+    {
+        player->processScroll(static_cast<float>(yoffset));
+    }
+}
+
+
+void Player::processMouseMovement(float xpos, float ypos)
+{
+    camera->processMouseMovement(xpos, ypos);
+}
+
+void Player::processScroll(float yoffset)
+{
+    camera->processScroll(yoffset);
+}
+
+
+
+
+RaycastResult Player::raycast(float maxDistance) {
+    glm::vec3 rayOrigin = camera->getPosition();
+    glm::vec3 rayDir = camera->getFront();
+
+    // Current voxel coordinates (int)
+    glm::ivec3 voxelPos = glm::floor(rayOrigin);
+
+    // How far to travel in ray units to move 1 full unit in X, Y, or Z
+    glm::vec3 deltaDist = glm::abs(glm::vec3(1.0f) / rayDir);
+
+    // Which direction to step in (+1 or -1)
+    glm::ivec3 step = glm::sign(rayDir);
+
+    // Distance to the next voxel boundary
+    glm::vec3 sideDist;
+    sideDist.x = (step.x > 0) ? (voxelPos.x + 1.0f - rayOrigin.x) * deltaDist.x : (rayOrigin.x - voxelPos.x) * deltaDist.x;
+    sideDist.y = (step.y > 0) ? (voxelPos.y + 1.0f - rayOrigin.y) * deltaDist.y : (rayOrigin.y - voxelPos.y) * deltaDist.y;
+    sideDist.z = (step.z > 0) ? (voxelPos.z + 1.0f - rayOrigin.z) * deltaDist.z : (rayOrigin.z - voxelPos.z) * deltaDist.z;
+
+    float traveled = 0;
+    glm::ivec3 lastNormal(0);
+
+    while (traveled < maxDistance) {
+        // Check if current voxelPos is solid in your Grid
+        if (grid->isSolid(voxelPos.x, voxelPos.y, voxelPos.z)) {
+            return {true, voxelPos, lastNormal};
+        }
+
+        // Jump to next voxel boundary
+        if (sideDist.x < sideDist.y && sideDist.x < sideDist.z) {
+            traveled = sideDist.x;
+            sideDist.x += deltaDist.x;
+            voxelPos.x += step.x;
+            lastNormal = glm::ivec3(-step.x, 0, 0);
+        } else if (sideDist.y < sideDist.z) {
+            traveled = sideDist.y;
+            sideDist.y += deltaDist.y;
+            voxelPos.y += step.y;
+            lastNormal = glm::ivec3(0, -step.y, 0);
+        } else {
+            traveled = sideDist.z;
+            sideDist.z += deltaDist.z;
+            voxelPos.z += step.z;
+            lastNormal = glm::ivec3(0, 0, -step.z);
+        }
+    }
+    return {false};
+}
+

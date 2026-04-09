@@ -24,6 +24,9 @@ public:
 
     [[nodiscard]] const glm::vec3& getPosition() const;
 
+    [[nodiscard]] const glm::vec3& getFront() const;
+
+
 private:
     glm::vec3 position = glm::vec3(0.0f, 0.0f,  3.0f);
     glm::vec3 front    = glm::vec3(0.0f, 0.0f, -1.0f);
