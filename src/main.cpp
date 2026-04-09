@@ -14,6 +14,7 @@
 #include "../include/scene/objects/GameObject.h"
 #include "../include/scene/objects/CustomMeshObject.h"
 #include "../include/scene/objects/ModelObject.h"
+#include "../include/rendering/VoxelRenderer.h"
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
@@ -21,8 +22,12 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
+
+
+
 std::unique_ptr<Camera> camera = std::make_unique<Camera>();
 std::shared_ptr<Logger> logger = std::make_shared<Logger>("debug.txt");
+std::shared_ptr<Grid> grid = std::make_shared<Grid>();
 
 std::unique_ptr<LightingRenderer>  lighting;
 
@@ -206,8 +211,6 @@ void initialiseGameObjects(){
 
     gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(terrainRenderer), glm::mat4(1.0));
 
-
-
     numEntities++;
 
 
@@ -218,22 +221,36 @@ void initialiseGameObjects(){
     );
 
     gameObjects[numEntities] = std::make_unique<ModelObject>(numEntities, std::move(ourModel), std::move(ourShader),glm::mat4(1.0));
-
-
     addPhysicsComponent(numEntities, *new PhysicsComponent(numEntities));
-
-
 
     numEntities++;
 
 
 //    lighting = std::make_unique<LightingRenderer>(logger);
-//    lighting->setupLighting();
-
-
-
+//    lighting->setupLighting()
 
 }
+
+void createVoxels() {
+    auto voxelShader = std::make_unique<Shader>(
+            "../shader/vertex/voxel-shader.vs",
+            "../shader/fragment/voxel-shader.fs"
+    );
+    voxelShader->use();
+//    voxelShader->setInt("texture_diffuse1", 0);
+//
+//    unsigned int voxelTexture;
+//    createTexture(voxelTexture, "resources/images/voxel_atlas.png");
+
+
+    auto voxelRenderer = std::make_unique<VoxelRenderer>(logger, std::move(voxelShader),grid);
+    voxelRenderer->setup();
+
+    gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(voxelRenderer), glm::mat4(1.0));
+
+    numEntities++;
+}
+
 
 int main()
 {
@@ -254,8 +271,8 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     stbi_set_flip_vertically_on_load(true);
 
-    initialiseGameObjects();
-
+//    initialiseGameObjects();
+    createVoxels();
 
     double previous = glfwGetTime();
     double lag = 0.0;

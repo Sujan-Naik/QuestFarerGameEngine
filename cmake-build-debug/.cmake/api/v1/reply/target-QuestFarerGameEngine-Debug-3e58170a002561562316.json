@@ -32,19 +32,19 @@
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 52,
+				"line" : 62,
 				"parent" : 0
 			},
 			{
 				"command" : 1,
 				"file" : 0,
-				"line" : 55,
+				"line" : 65,
 				"parent" : 0
 			},
 			{
 				"command" : 2,
 				"file" : 0,
-				"line" : 56,
+				"line" : 66,
 				"parent" : 0
 			}
 		]
@@ -83,7 +83,11 @@
 				11,
 				13,
 				17,
-				21
+				21,
+				34,
+				36,
+				38,
+				40
 			]
 		},
 		{
@@ -158,7 +162,11 @@
 				11,
 				13,
 				17,
-				21
+				21,
+				34,
+				36,
+				38,
+				40
 			]
 		},
 		{
@@ -188,7 +196,13 @@
 				29,
 				30,
 				31,
-				32
+				32,
+				33,
+				35,
+				37,
+				39,
+				41,
+				42
 			]
 		}
 	],
@@ -366,6 +380,60 @@
 		{
 			"backtrace" : 1,
 			"path" : "include/scene/geometry/Transform.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "include/voxel/VoxelType.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/voxel/Chunk.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "include/voxel/Chunk.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/voxel/Grid.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "include/voxel/Grid.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/voxel/VoxelQuery.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "include/voxel/VoxelQuery.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"compileGroupIndex" : 0,
+			"path" : "src/rendering/VoxelRenderer.cpp",
+			"sourceGroupIndex" : 0
+		},
+		{
+			"backtrace" : 1,
+			"path" : "include/rendering/VoxelRenderer.h",
+			"sourceGroupIndex" : 1
+		},
+		{
+			"backtrace" : 1,
+			"path" : "external/binaryGreedyMeshing/Mesher.h",
 			"sourceGroupIndex" : 1
 		}
 	],

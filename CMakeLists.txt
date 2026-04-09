@@ -38,6 +38,16 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/scene/objects/CustomMeshObject.h
         include/rendering/RenderContext.h
         include/scene/geometry/Transform.h
+        include/voxel/VoxelType.h
+        src/voxel/Chunk.cpp
+        include/voxel/Chunk.h
+        src/voxel/Grid.cpp
+        include/voxel/Grid.h
+        src/voxel/VoxelQuery.cpp
+        include/voxel/VoxelQuery.h
+        src/rendering/VoxelRenderer.cpp
+        include/rendering/VoxelRenderer.h
+        external/binaryGreedyMeshing/Mesher.h
 )
 
 add_custom_command(

@@ -112,6 +112,34 @@ build CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o:
   OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
   OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/rendering
 
+build CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Chunk.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/voxel/Chunk.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Chunk.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/voxel
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Grid.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/voxel/Grid.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Grid.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/voxel
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/voxel/VoxelQuery.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/voxel/VoxelQuery.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/voxel/VoxelQuery.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/voxel
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/rendering/VoxelRenderer.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/rendering
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target QuestFarerGameEngine
@@ -120,7 +148,7 @@ build CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o:
 #############################################
 # Link the executable QuestFarerGameEngine
 
-build QuestFarerGameEngine: CXX_EXECUTABLE_LINKER__QuestFarerGameEngine_Debug CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/glad/glad.c.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/Shader.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/stb/stb_image.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/utils/Utils.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/LightingRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/MeshRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o | /usr/local/lib/libglfw.so.3.4
+build QuestFarerGameEngine: CXX_EXECUTABLE_LINKER__QuestFarerGameEngine_Debug CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/glad/glad.c.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/Shader.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/stb/stb_image.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/utils/Utils.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/LightingRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/MeshRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Chunk.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/voxel/Grid.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/voxel/VoxelQuery.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o | /usr/local/lib/libglfw.so.3.4
   FLAGS = -g
   LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  -lassimp  /usr/local/lib/libglfw.so.3.4
   OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir

@@ -93,6 +93,8 @@ void TerrainMCRenderer::draw(const RenderContext& ctx, glm::mat4 modelMatrix)
 //            EFFECTIVE_SIDE_LENGTH / 2.0f - (MC_GRID_Z * MC_WORLD_SCALE) / 2.0f
 //    ));
 //    model = glm::scale(model, glm::vec3(MC_WORLD_SCALE));
+
+
     shader->setMat4("model", modelMatrix);
 
 
