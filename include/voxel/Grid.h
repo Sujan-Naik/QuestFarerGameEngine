@@ -20,20 +20,22 @@ namespace glm {
         return a.x < b.x || (a.x == b.x && a.y < b.y);
     }
 }
-class Grid {
+namespace voxel {
 
-public:
+    class Grid {
 
-    Grid();
+    public:
+
+        Grid();
 
 
-    std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> chunks;
+        std::unordered_map<glm::ivec2, std::shared_ptr<Chunk>> chunks;
 
-    void setVoxel(int worldX, int worldY, int worldZ, VoxelType type);
+        void setVoxel(int worldX, int worldY, int worldZ, VoxelType type);
 
-    bool isSolid(int x, int y, int z) const;
+        bool isSolid(int x, int y, int z) const;
 
     };
-
+}
 
 #endif //QUESTFARERGAMEENGINE_GRID_H

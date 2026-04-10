@@ -4,6 +4,7 @@
 #include "../../rendering/MeshRenderer.h"
 #include "../../rendering/RenderContext.h"
 #include "GameObject.h"
+using namespace rendering;
 
 struct CustomMeshObject : GameObject {
     std::unique_ptr<MeshRenderer> renderer;

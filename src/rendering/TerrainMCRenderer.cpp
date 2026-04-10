@@ -9,6 +9,9 @@
 
 #include "../../include/rendering/TerrainMCRenderer.h"
 #include "../../include/globals.h"
+using namespace logger;
+using namespace rendering;
+using namespace rendering::mesh;
 
 TerrainMCRenderer::TerrainMCRenderer(std::shared_ptr<Logger> logger,
                                      std::unique_ptr<Shader> shader)

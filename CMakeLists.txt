@@ -20,7 +20,7 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/utils/Utils.h
         src/rendering/LightingRenderer.cpp
         include/rendering/LightingRenderer.h
-        include/mesh/Mesh.h
+        include/rendering/mesh/Mesh.h
         include/rendering/MeshRenderer.h
         src/rendering/MeshRenderer.cpp
         include/globals.h
@@ -28,7 +28,7 @@ add_executable(QuestFarerGameEngine src/main.cpp
         external/MC/noise.h
         src/rendering/TerrainMCRenderer.cpp
         include/rendering/TerrainMCRenderer.h
-        include/model/Model.h
+        include/rendering/model/StaticModel.h
         include/scene/components/Component.h
         include/scene/components/ContainerObject.h
         include/scene/objects/GameObject.h
@@ -52,9 +52,9 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/animation/Animator.h
         include/animation/Bone.h
         include/animation/assimp_glm_helpers.h
-        include/animation/model_animation.h
+        include/rendering/model/ModelAnimation.h
         include/animation/animdata.h
-        include/animation/MeshAnimation.h
+        include/rendering/mesh/MeshAnimation.h
         include/animation/Animation.h
         include/scene/objects/AnimationModelObject.h
         src/physics/PhysicsSystem.cpp
@@ -62,6 +62,10 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/world/World.cpp
         include/world/World.h
         src/physics/PhysicsSystem.cpp
+        include/character/CharacterController.cpp
+        include/character/CharacterController.h
+        include/animation/CharacterAnimationController.h
+        include/rendering/model/Model.h
 )
 
 add_custom_command(

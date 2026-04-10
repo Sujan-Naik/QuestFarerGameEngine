@@ -3,18 +3,19 @@
 
 #include "../../include/player/Player.h"
 
+using namespace player;
 
 Player::Player(std::shared_ptr<Grid> gridPtr) : grid(std::move(gridPtr)) {}
 
 
 
 
-const RenderContext Player::getRenderContext() const {
+const rendering::RenderContext Player::getRenderContext() const {
     const glm::mat4 view       = camera->getViewMatrix();
     const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
 
 
-    return RenderContext{camera->getPosition(), projection, view};
+    return rendering::RenderContext{camera->getPosition(), projection, view};
 }
 
 void Player::processInput(GLFWwindow* window, double timeScale)

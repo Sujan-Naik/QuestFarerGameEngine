@@ -4,6 +4,7 @@
 #include "glm/vec3.hpp"
 #include "../../rendering/RenderContext.h"
 #include "../geometry/Transform.h"
+
 struct GameObject {
     int id;
     Transform transform;
@@ -12,7 +13,7 @@ struct GameObject {
     GameObject(int id,  Transform transform, bool active = true)
             : id(id), transform(transform), active(active) {}
 
-    virtual void draw(const RenderContext& ctx) = 0;
+    virtual void draw(const rendering::RenderContext& ctx) = 0;
     virtual ~GameObject() = default;
 
     void setPosition(const glm::vec3& pos) {

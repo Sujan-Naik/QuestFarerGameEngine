@@ -8,15 +8,11 @@
 #include "../include/rendering/TerrainMCRenderer.h"
 #include "../include/rendering/LightingRenderer.h"
 #include "../include/globals.h"
-#include "../include/model/Model.h"
 #include "../include/scene/components/AIComponent.h"
 #include "../include/scene/components/PhysicsComponent.h"
-#include "../include/scene/objects/GameObject.h"
 #include "../include/scene/objects/CustomMeshObject.h"
-#include "../include/scene/objects/ModelObject.h"
 #include "../include/rendering/VoxelRenderer.h"
 #include "../include/player/Player.h"
-#include "../include/animation/model_animation.h"
 #include "../include/animation/Animation.h"
 #include "../include/animation/Animator.h"
 #include "../include/scene/objects/AnimationModelObject.h"
@@ -24,15 +20,14 @@
 
 #include <GLFW/glfw3.h>
 #include <stb/stb_image.h>
-#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <memory>
 
 
+using namespace world;
+std::shared_ptr<logger::Logger> logFile = std::make_shared<logger::Logger>("debug.txt");
 
-std::shared_ptr<Logger> logger = std::make_shared<Logger>("debug.txt");
-
-std::shared_ptr<World> world = std::make_shared<World>();
+std::shared_ptr<World> voxelWorld = std::make_shared<World>();
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -86,9 +81,9 @@ GLFWwindow* initialiseGLFW()
     glfwMakeContextCurrent(window);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetCursorPosCallback(window, Player::mouse_callback);
-    glfwSetMouseButtonCallback(window, Player::mouse_button_callback);
-    glfwSetScrollCallback(window, Player::scroll_callback);
+    glfwSetCursorPosCallback(window, Player::Player::mouse_callback);
+    glfwSetMouseButtonCallback(window, Player::Player::mouse_button_callback);
+    glfwSetScrollCallback(window, Player::Player::scroll_callback);
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 
@@ -115,7 +110,7 @@ int main()
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     stbi_set_flip_vertically_on_load(true);
 
-    world->initialise(window);
+    voxelWorld->initialise(window);
 
     double previous = glfwGetTime();
     double lag = 0.0;
@@ -132,10 +127,10 @@ int main()
 
         while (lag >= FIXED_TIMESTEP)
         {
-            world->update(lag / FIXED_TIMESTEP);
+            voxelWorld->update(lag / FIXED_TIMESTEP);
             lag -= FIXED_TIMESTEP;
         }
-        world->render(lag / FIXED_TIMESTEP);
+        voxelWorld->render(lag / FIXED_TIMESTEP);
 
 
         glfwSwapBuffers(window);

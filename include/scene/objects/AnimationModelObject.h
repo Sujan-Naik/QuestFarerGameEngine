@@ -3,17 +3,17 @@
 
 
 #include <memory>
-#include "../../animation/model_animation.h"
 #include "../../rendering/RenderContext.h"
 #include "GameObject.h"
 #include "../../animation/Animator.h"
 
+
 struct AnimationModelObject: GameObject {
-        std::unique_ptr<animation::Model> model;
+        std::unique_ptr<ModelAnimation> model;
         std::unique_ptr<Shader> shader;
     std::unique_ptr<animation::Animator> animator;
 
-         AnimationModelObject(int id, std::unique_ptr<animation::Model> model, std::unique_ptr<Shader> shader, Transform transform, std::unique_ptr<animation::Animator> animator , bool active = true)
+         AnimationModelObject(int id, std::unique_ptr<ModelAnimation> model, std::unique_ptr<Shader> shader, Transform transform, std::unique_ptr<animation::Animator> animator , bool active = true)
                 : GameObject(id,transform, active), model(std::move(model)), shader(std::move(shader)), animator(std::move(animator)) {}
 
         void draw(const RenderContext& ctx) override {

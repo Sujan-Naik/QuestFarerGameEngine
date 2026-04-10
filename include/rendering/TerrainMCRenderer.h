@@ -2,16 +2,18 @@
 #define QUESTFARERGAMEENGINE_TERRAINMCRENDERER_H
 
 #include "Shader.h"
-#include "../mesh/Mesh.h"
 #include "MeshRenderer.h"
 #include "../logger/Logger.h"
 #include <memory>
 #include <optional>
+using namespace logger;
+
+namespace rendering {
 
 class TerrainMCRenderer : public MeshRenderer {
 
 private:
-    std::optional<Mesh> mesh;   // owns the VAO/VBO/EBO via the MeshAnimation class
+    std::optional<mesh::Mesh> mesh;   // owns the VAO/VBO/EBO via the MeshAnimation class
     unsigned int textureId = 0; // GL texture handle passed in from main
 
 public:
@@ -25,5 +27,6 @@ public:
     void draw(const RenderContext& ctx, glm::mat4 modelMatrix) override;
 
 };
+}
 
 #endif //QUESTFARERGAMEENGINE_TERRAINMCRENDERER_H

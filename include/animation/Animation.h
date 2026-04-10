@@ -9,9 +9,9 @@
 #include <functional>
 #include "animdata.h"
 #include "Bone.h"
-#include "model_animation.h"
+#include "../rendering/model/ModelAnimation.h"
 
-
+using namespace rendering::model;
 namespace animation {
 
     struct AssimpNodeData {
@@ -25,7 +25,7 @@ namespace animation {
     public:
         Animation() = default;
 
-        Animation(const std::string &animationPath, Model *model) {
+        Animation(const std::string &animationPath, ModelAnimation *model) {
             Assimp::Importer importer;
             const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
             assert(scene && scene->mRootNode);
@@ -63,11 +63,11 @@ namespace animation {
         }
 
     private:
-        void ReadMissingBones(const aiAnimation *animation, Model &model) {
+        void ReadMissingBones(const aiAnimation *animation, ModelAnimation &model) {
             int size = animation->mNumChannels;
 
-            auto &boneInfoMap = model.GetBoneInfoMap();//getting m_BoneInfoMap from Model class
-            int &boneCount = model.GetBoneCount(); //getting the m_BoneCounter from Model class
+            auto &boneInfoMap = model.GetBoneInfoMap();//getting m_BoneInfoMap from StaticModel class
+            int &boneCount = model.GetBoneCount(); //getting the m_BoneCounter from StaticModel class
 
             //reading channels(bones engaged in an animation and their keyframes)
             for (int i = 0; i < size; i++) {

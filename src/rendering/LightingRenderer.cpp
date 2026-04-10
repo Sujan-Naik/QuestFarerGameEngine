@@ -2,7 +2,8 @@
 #include "../../include/rendering/LightingRenderer.h"
 #include "glm/ext/matrix_transform.hpp"
 #include "../include/globals.h"
-
+using namespace logger;
+using namespace rendering;
 LightingRenderer::LightingRenderer(std::shared_ptr<Logger> logger): logger(logger) {
 
     lightCubeShader = std::make_unique<Shader>("../shader/vertex/light-cube-shader.vs",

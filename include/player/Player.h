@@ -8,47 +8,50 @@
 #include "../../include/rendering/RenderContext.h"
 #include "../../include/globals.h"
 #include "../../include/voxel/Grid.h"
+using namespace voxel;
+namespace player {
+    struct RaycastResult {
+        bool hit = false;
+        glm::ivec3 voxelPos; // The actual voxel hit
+        glm::ivec3 normal;   // Which face was hit (useful for placing blocks)
+    };
 
-struct RaycastResult {
-    bool hit = false;
-    glm::ivec3 voxelPos; // The actual voxel hit
-    glm::ivec3 normal;   // Which face was hit (useful for placing blocks)
-};
+    class Player {
 
-class Player {
+    private:
+        std::unique_ptr<Camera> camera = std::make_unique<Camera>();
 
-private:
-    std::unique_ptr<Camera> camera = std::make_unique<Camera>();
+        std::shared_ptr<Grid> grid;
 
-    std::shared_ptr<Grid> grid;
+        RaycastResult raycast(float maxDistance);
 
-    RaycastResult raycast(float maxDistance);
+        const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
+        bool cursorEnabled = false;
 
-    const float aspectRatio = static_cast<float>(SCR_WIDTH) / static_cast<float>(SCR_HEIGHT);
-    bool  cursorEnabled = false;
+        void handleRightClick();
 
-    void handleRightClick();
+        double actionTimer;
 
-    double actionTimer;
+    public:
 
-public:
+        Player(std::shared_ptr<Grid> gridPtr);
 
-    Player(std::shared_ptr<Grid> gridPtr);
+        [[nodiscard]] const rendering::RenderContext getRenderContext() const;
 
-    [[nodiscard]] const RenderContext getRenderContext() const;
-
-     void processInput(GLFWwindow* window, double elapsed);
+        void processInput(GLFWwindow *window, double elapsed);
 
 
-    static void mouse_callback(GLFWwindow*, double xpos, double ypos);
-    static void mouse_button_callback(GLFWwindow* window, int button, int action, int);
+        static void mouse_callback(GLFWwindow *, double xpos, double ypos);
 
-    static void scroll_callback(GLFWwindow*, double, double yoffset);
+        static void mouse_button_callback(GLFWwindow *window, int button, int action, int);
 
-    void processMouseMovement(float xpos, float ypos);
-    void processScroll(float yoffset);
+        static void scroll_callback(GLFWwindow *, double, double yoffset);
 
-};
+        void processMouseMovement(float xpos, float ypos);
 
+        void processScroll(float yoffset);
+
+    };
+}
 
 #endif //QUESTFARERGAMEENGINE_PLAYER_H

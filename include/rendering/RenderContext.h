@@ -3,6 +3,7 @@
 
 #include "glm/detail/type_mat4x4.hpp"
 
+namespace rendering {
 
 /**
 * @struct Defines necessary information for rendering
@@ -10,11 +11,12 @@
 * @param projection A projection matrix for perspective rendering
 * @param view View matrix for camera transformation
 */
-struct RenderContext{
+    struct RenderContext {
 
-    glm::vec3 cameraPosition;
-    glm::mat4 projection;
-    glm::mat4 view;
-};
+        glm::vec3 cameraPosition;
+        glm::mat4 projection;
+        glm::mat4 view;
+    };
+}
 
 #endif //QUESTFARERGAMEENGINE_RENDERCONTEXT_H

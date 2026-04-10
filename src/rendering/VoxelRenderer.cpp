@@ -2,6 +2,9 @@
 #include "../../include/globals.h"
 #include "../../include/rendering/VoxelRenderer.h"
 #include <glm/gtc/matrix_transform.hpp>
+using namespace logger;
+using namespace rendering;
+using namespace rendering::mesh;
 
 VoxelRenderer::VoxelRenderer(std::shared_ptr<Logger> logger, std::unique_ptr<Shader> shader,
                              std::shared_ptr<Grid> grid)

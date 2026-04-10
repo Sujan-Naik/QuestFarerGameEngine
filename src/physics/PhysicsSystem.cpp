@@ -4,6 +4,7 @@
 
 #include <cmath>
 
+using namespace physics;
 void PhysicsSystem::step(PhysicsComponent* components, int count,
                          std::unique_ptr<GameObject>* gameObjects,
                          std::shared_ptr<Grid> grid, float dt) {
