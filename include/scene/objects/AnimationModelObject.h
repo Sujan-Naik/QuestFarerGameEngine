@@ -23,11 +23,28 @@ struct AnimationModelObject : GameObject {
     AnimationModelObject(int id, std::shared_ptr<ModelAnimation> model, std::unique_ptr<Shader> shader,
                          Transform transform, std::shared_ptr<animation::Animator> animator, bool active = true)
             : GameObject(id, transform, active), model(std::move(model)), shader(std::move(shader)),
-              animator(std::move(animator)) {
+              animator(std::move(animator)) {}
+
+    void resetRootMotionBaseline() {
+        // Called whenever an animation switch fires. Captures the new animation's
+        // starting root position as the baseline so the first delta is always zero,
+        // preventing the rubber band jump between animations.
+        previousFrameRootPos = animator->GetRootBonePosition();
+        previousFrameRootRot = animator->GetRootBoneRotation();
+        lastFrameDeltaPos = glm::vec3(0.0f);
+        lastFrameDeltaRot = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        isFirstFrame = false;
     }
 
     void applyRootMotion() {
         if (!animator) return;
+
+        // If a new animation just started this tick, reset baseline instead of
+        // computing a delta — that delta would be garbage (old end vs new start)
+        if (animator->WasAnimationSwitched()) {
+            resetRootMotionBaseline();
+            return;
+        }
 
         glm::vec3 currentRootPos = animator->GetRootBonePosition();
         glm::quat currentRootRot = animator->GetRootBoneRotation();
@@ -43,7 +60,8 @@ struct AnimationModelObject : GameObject {
         glm::quat frameDeltaRot;
 
         if (animator->DidLoopThisFrame()) {
-            // Use extrapolated velocity to bridge the loop gap
+            // Animation looped but didn't switch — extrapolate using last frame's
+            // velocity to bridge the seam cleanly
             frameDeltaPos = lastFrameDeltaPos;
             frameDeltaRot = lastFrameDeltaRot;
         } else {
@@ -51,18 +69,12 @@ struct AnimationModelObject : GameObject {
             frameDeltaRot = currentRootRot * glm::inverse(previousFrameRootRot);
         }
 
-        // Cache deltas for the next frame
         lastFrameDeltaPos = frameDeltaPos;
         lastFrameDeltaRot = frameDeltaRot;
 
-        // Apply movement: only affect X and Z to keep character on ground
-        // Note: transform.rotation is the GameObject's world orientation
         glm::vec3 worldDeltaPos = transform.rotation * frameDeltaPos;
         transform.position.x += worldDeltaPos.x;
         transform.position.z += worldDeltaPos.z;
-
-        // Optional: If you want the animation to turn the GameObject
-        // transform.rotation = transform.rotation * frameDeltaRot;
 
         previousFrameRootPos = currentRootPos;
         previousFrameRootRot = currentRootRot;
@@ -70,7 +82,6 @@ struct AnimationModelObject : GameObject {
 
     void draw(const RenderContext& ctx) override {
         if (animator) {
-            animator->UpdateAnimation(FIXED_TIMESTEP);
             applyRootMotion();
         }
 
@@ -84,13 +95,10 @@ struct AnimationModelObject : GameObject {
         shader->setMat4("view", ctx.view);
         shader->setMat4("projection", ctx.projection);
 
-        // Calculate model matrix from GameObject transform (Position, Rotation, Scale)
         glm::mat4 modelMat = getModelMatrix();
 
         if (animator) {
             glm::vec3 rootPos = animator->GetRootBonePosition();
-            // Counter-act the animation's visual forward translation so the mesh stays at GameObject origin
-            // We only subtract X and Z because we are applying those to the GameObject transform
             modelMat = glm::translate(modelMat, glm::vec3(-rootPos.x, 0.0f, -rootPos.z));
         }
 
@@ -99,4 +107,4 @@ struct AnimationModelObject : GameObject {
     }
 };
 
-#endif
+#endif //QUESTFARERGAMEENGINE_ANIMATIONMODELOBJECT_H

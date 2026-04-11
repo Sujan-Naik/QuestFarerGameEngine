@@ -82,8 +82,6 @@ void Player::processInput(GLFWwindow* window, double timeScale)
     } else {
 
 
-
-
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
                 avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::RUN);

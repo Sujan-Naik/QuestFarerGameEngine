@@ -7,7 +7,6 @@
 
 #include <memory>
 #include <map>
-#include <utility>
 
 using namespace rendering::mesh;
 using namespace rendering::model;
@@ -29,10 +28,10 @@ namespace scene::components {
         std::shared_ptr<ModelAnimation> skeleton;
         std::shared_ptr<Animator> animator;
         std::map<AnimationState, std::shared_ptr<Animation>> animations;
-        AnimationState currentState;
+        AnimationState currentState = AnimationState::IDLE;
+        bool stateInitialized = false;
 
         Transform* transform;
-
 
     public:
         explicit CharacterControllerComponent(int entityId, Transform *transform)
@@ -41,8 +40,8 @@ namespace scene::components {
         CharacterControllerComponent() : Component(-1) {}
 
         void initialize(std::shared_ptr<ModelAnimation> model, std::shared_ptr<Animator> anim) {
-            skeleton = std::move(model);
-            animator = std::move(anim);
+            skeleton = model;
+            animator = anim;
         }
 
         void registerAnimation(AnimationState state, const std::string &animationPath) {
@@ -68,16 +67,36 @@ namespace scene::components {
         }
 
         void switchAnimation(AnimationState newState) {
-            if (currentState == newState) return;
+            // Don't re-queue the same state that's already pending
+            if (stateInitialized && newState == currentState) {
+                return;
+            }
+
             if (animations.find(newState) == animations.end()) {
                 std::cerr << "Error: Animation state not registered\n";
                 return;
             }
 
-            currentState = newState;
             if (animator) {
-                std::cout << "playing" << std::endl;
-                animator->PlayAnimation(animations[newState]);
+
+                stateInitialized = true;
+
+
+
+                switch (currentState){
+                    case AnimationState::IDLE:
+                        animator->ForceAnimation(animations[newState]);
+                        break;
+                    case AnimationState::WALK:
+                        animator->PlayAnimation(animations[newState]);
+                        break;
+                    case AnimationState::RUN:
+                        animator->PlayAnimation(animations[newState]);
+                        break;
+
+                }
+                currentState = newState;
+
             }
         }
 
@@ -87,32 +106,23 @@ namespace scene::components {
 
         void receive(int message) override {
             switch (message) {
-                case 0:
-                    switchAnimation(AnimationState::IDLE);
-                    break;
-                case 1:
-                    switchAnimation(AnimationState::WALK);
-                    break;
-                case 2:
-                    switchAnimation(AnimationState::RUN);
-                    break;
-                case 3:
-                    switchAnimation(AnimationState::JUMP);
-                    break;
+                case 0: switchAnimation(AnimationState::IDLE);   break;
+                case 1: switchAnimation(AnimationState::WALK);   break;
+                case 2: switchAnimation(AnimationState::RUN);    break;
+                case 3: switchAnimation(AnimationState::JUMP);   break;
             }
         }
 
         void update() override {
-
+            if (animator) {
+                animator->UpdateAnimation(FIXED_TIMESTEP);
+            }
         }
 
         Transform* getTransform() {
             return transform;
         }
-
     };
-
-
-
 }
+
 #endif //QUESTFARERGAMEENGINE_CHARACTERCONTROLLERCOMPONENT_H
