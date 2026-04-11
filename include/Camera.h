@@ -3,6 +3,8 @@
 
 #include <glm/vec3.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include "scene/geometry/Transform.h"
 
 enum class CameraMovement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 
@@ -19,21 +21,30 @@ public:
     void processMouseMovement(float xpos, float ypos);
     void processScroll(float yoffset);
 
+    void setTransform(const Transform& transform);
+    void movePosition(glm::vec3 posDelta);
+
     [[nodiscard]] glm::mat4 getViewMatrix() const;
     [[nodiscard]] glm::mat4 getProjectionMatrix(float aspectRatio) const;
 
     [[nodiscard]] const glm::vec3& getPosition() const;
-
     [[nodiscard]] const glm::vec3& getFront() const;
 
+    const glm::vec3 &getUp() const;
+
+    void setPosition(const glm::vec3 &position);
+
+    float getAngleWithTransform( Transform target) const;
+
+    float getYaw() const;
 
 private:
-    glm::vec3 position = glm::vec3(0.0f, 0.0f,  3.0f);
-    glm::vec3 front    = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 position = glm::vec3(0.0f, 0.0f, -3.0f);
+    glm::vec3 front    = glm::vec3(0.0f, 0.0f,  1.0f);
     glm::vec3 up       = glm::vec3(0.0f, 1.0f,  0.0f);
 
-    float yaw   = -90.0f;
-    float pitch =   0.0f;
+    float yaw   = 0.0f;
+    float pitch = 0.0f;
     float fov   = DEFAULT_FOV;
 
     bool  firstMouse = true;
@@ -41,6 +52,7 @@ private:
     float lastY      = 0.0f;
 
     void updateCameraVectors();
+    void updateYawPitchFromQuaternion(const glm::quat& rotation);
 };
 
 #endif //QUESTFARERGAMEENGINE_CAMERA_H

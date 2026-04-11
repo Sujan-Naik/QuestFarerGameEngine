@@ -1,112 +1,117 @@
 #ifndef QUESTFARERGAMEENGINE_PHYSICSCOMPONENT_H
 #define QUESTFARERGAMEENGINE_PHYSICSCOMPONENT_H
 
-#include "Component.h"
 #include <glm/glm.hpp>
 #include <vector>
+#include "Component.h"
 
-struct CollisionMesh {
-    std::vector<glm::vec3> positions;
-    std::vector<unsigned int> indices;
-    glm::vec3 minBounds;
-    glm::vec3 maxBounds;
-};
 
-class PhysicsComponent : public Component {
-public:
-    glm::vec3 velocity{0.0f};
-    glm::vec3 forceAccumulator{0.0f};
+namespace scene::components {
 
-    float mass = 1.0f;
-    float friction = 0.95f;
-    glm::vec3 halfExtents{0.5f};
-    bool onGround = false;
+    struct CollisionMesh {
+        std::vector<glm::vec3> positions;
+        std::vector<unsigned int> indices;
+        glm::vec3 minBounds;
+        glm::vec3 maxBounds;
+    };
 
-    std::vector<CollisionMesh> collisionMeshes;
-    bool useMeshCollision = false;
+    class PhysicsComponent : public Component {
+    public:
+        glm::vec3 velocity{0.0f};
+        glm::vec3 forceAccumulator{0.0f};
 
-    explicit PhysicsComponent(int entityId) : Component(entityId) {}
+        float mass = 1.0f;
+        float friction = 0.95f;
+        glm::vec3 halfExtents{0.5f};
+        bool onGround = false;
 
-    PhysicsComponent() : Component(-1) {}
+        std::vector<CollisionMesh> collisionMeshes;
+        bool useMeshCollision = false;
 
-    void receive(int message) override {}
+        explicit PhysicsComponent(int entityId) : Component(entityId) {}
 
-    void update(GameObject* gameObject) override {}
+        PhysicsComponent() : Component(-1) {}
 
-    void addCollisionMesh(const std::vector<glm::vec3>& positions,
-                          const std::vector<unsigned int>& indices) {
-        CollisionMesh mesh;
-        mesh.positions = positions;
-        mesh.indices = indices;
-        calculateMeshBounds(mesh);
-        collisionMeshes.push_back(mesh);
-        useMeshCollision = true;
-    }
+        void receive(int message) override {}
 
-    void addCollisionMeshesFromModel(const std::vector<std::vector<glm::vec3>>& meshVertices,
-                                     const std::vector<std::vector<unsigned int>>& meshIndices) {
-        unsigned int indexOffset = 0;
+        void update() override {
 
-        for (size_t i = 0; i < meshVertices.size(); ++i) {
+        }
+
+        void addCollisionMesh(const std::vector<glm::vec3> &positions,
+                              const std::vector<unsigned int> &indices) {
             CollisionMesh mesh;
-            mesh.positions = meshVertices[i];
-
-            for (unsigned int index : meshIndices[i]) {
-                mesh.indices.push_back(index + indexOffset);
-            }
-
+            mesh.positions = positions;
+            mesh.indices = indices;
             calculateMeshBounds(mesh);
             collisionMeshes.push_back(mesh);
-            indexOffset += meshVertices[i].size();
+            useMeshCollision = true;
         }
 
-        useMeshCollision = true;
-    }
+        void addCollisionMeshesFromModel(const std::vector<std::vector<glm::vec3>> &meshVertices,
+                                         const std::vector<std::vector<unsigned int>> &meshIndices) {
+            unsigned int indexOffset = 0;
 
-    void calculateMeshBounds(CollisionMesh& mesh) {
-        if (mesh.positions.empty()) {
-            mesh.minBounds = glm::vec3(0.0f);
-            mesh.maxBounds = glm::vec3(0.0f);
-            return;
+            for (size_t i = 0; i < meshVertices.size(); ++i) {
+                CollisionMesh mesh;
+                mesh.positions = meshVertices[i];
+
+                for (unsigned int index: meshIndices[i]) {
+                    mesh.indices.push_back(index + indexOffset);
+                }
+
+                calculateMeshBounds(mesh);
+                collisionMeshes.push_back(mesh);
+                indexOffset += meshVertices[i].size();
+            }
+
+            useMeshCollision = true;
         }
 
-        mesh.minBounds = mesh.positions[0];
-        mesh.maxBounds = mesh.positions[0];
+        void calculateMeshBounds(CollisionMesh &mesh) {
+            if (mesh.positions.empty()) {
+                mesh.minBounds = glm::vec3(0.0f);
+                mesh.maxBounds = glm::vec3(0.0f);
+                return;
+            }
 
-        for (const auto& pos : mesh.positions) {
-            mesh.minBounds = glm::min(mesh.minBounds, pos);
-            mesh.maxBounds = glm::max(mesh.maxBounds, pos);
+            mesh.minBounds = mesh.positions[0];
+            mesh.maxBounds = mesh.positions[0];
+
+            for (const auto &pos: mesh.positions) {
+                mesh.minBounds = glm::min(mesh.minBounds, pos);
+                mesh.maxBounds = glm::max(mesh.maxBounds, pos);
+            }
         }
-    }
 
-    glm::vec3 getWorldMinBounds(const glm::vec3& position, size_t meshIndex) const {
-        if (meshIndex < collisionMeshes.size()) {
-            return position + collisionMeshes[meshIndex].minBounds;
+        glm::vec3 getWorldMinBounds(const glm::vec3 &position, size_t meshIndex) const {
+            if (meshIndex < collisionMeshes.size()) {
+                return position + collisionMeshes[meshIndex].minBounds;
+            }
+            return position;
         }
-        return position;
-    }
 
-    glm::vec3 getWorldMaxBounds(const glm::vec3& position, size_t meshIndex) const {
-        if (meshIndex < collisionMeshes.size()) {
-            return position + collisionMeshes[meshIndex].maxBounds;
+        glm::vec3 getWorldMaxBounds(const glm::vec3 &position, size_t meshIndex) const {
+            if (meshIndex < collisionMeshes.size()) {
+                return position + collisionMeshes[meshIndex].maxBounds;
+            }
+            return position;
         }
-        return position;
-    }
 
-    void applyForce(glm::vec3 force) {
-        forceAccumulator += force;
-    }
+        void applyForce(glm::vec3 force) {
+            forceAccumulator += force;
+        }
 
-    void integrate(float dt) {
-        if (mass <= 0.0f) return;
+        void integrate(float dt) {
+            if (mass <= 0.0f) return;
 
-        glm::vec3 acceleration = forceAccumulator / mass;
+            glm::vec3 acceleration = forceAccumulator / mass;
 
-        velocity += acceleration * dt;
-        velocity *= friction;
+            velocity += acceleration * dt;
+            velocity *= friction;
 
-        forceAccumulator = glm::vec3(0.0f);
-    }
-};
-
+            forceAccumulator = glm::vec3(0.0f);
+        }
+    };
+}
 #endif //QUESTFARERGAMEENGINE_PHYSICSCOMPONENT_H

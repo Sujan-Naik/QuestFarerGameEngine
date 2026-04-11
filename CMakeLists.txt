@@ -30,7 +30,6 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/TerrainMCRenderer.h
         include/rendering/model/StaticModel.h
         include/scene/components/Component.h
-        include/scene/components/ContainerObject.h
         include/scene/objects/GameObject.h
         include/scene/components/AIComponent.h
         include/scene/components/PhysicsComponent.h
@@ -64,8 +63,9 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/physics/PhysicsSystem.cpp
         include/character/CharacterController.cpp
         include/character/CharacterController.h
-        include/animation/CharacterAnimationController.h
         include/rendering/model/Model.h
+        include/scene/components/CharacterControllerComponent.h
+        include/scene/components/ECSManager.h
 )
 
 add_custom_command(

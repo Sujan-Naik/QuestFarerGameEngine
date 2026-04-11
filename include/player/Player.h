@@ -1,13 +1,16 @@
 #ifndef QUESTFARERGAMEENGINE_PLAYER_H
 #define QUESTFARERGAMEENGINE_PLAYER_H
 
-#include <GLFW/glfw3.h>
-
 #include <memory>
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
 #include "../../include/Camera.h"
 #include "../../include/rendering/RenderContext.h"
 #include "../../include/globals.h"
 #include "../../include/voxel/Grid.h"
+#include "../scene/objects/GameObject.h"
+#include "../scene/components/CharacterControllerComponent.h"
+
 using namespace voxel;
 namespace player {
     struct RaycastResult {
@@ -20,6 +23,8 @@ namespace player {
 
     private:
         std::unique_ptr<Camera> camera = std::make_unique<Camera>();
+
+        scene::components::CharacterControllerComponent* avatar;
 
         std::shared_ptr<Grid> grid;
 
@@ -34,7 +39,7 @@ namespace player {
 
     public:
 
-        Player(std::shared_ptr<Grid> gridPtr);
+        Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent* avatar);
 
         [[nodiscard]] const rendering::RenderContext getRenderContext() const;
 
@@ -51,6 +56,9 @@ namespace player {
 
         void processScroll(float yoffset);
 
+        void setAvatar( scene::components::CharacterControllerComponent* newAvatar);
+
+        scene::components::CharacterControllerComponent * getAvatar();
     };
 }
 

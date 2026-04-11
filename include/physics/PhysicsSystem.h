@@ -10,7 +10,7 @@ using namespace voxel;
 namespace physics {
     class PhysicsSystem {
     public:
-        void step(PhysicsComponent *components, int count,
+        void step( scene::components::PhysicsComponent  *components , int count,
                   std::unique_ptr<GameObject> *gameObjects,
                   std::shared_ptr<Grid> grid, float dt);
 

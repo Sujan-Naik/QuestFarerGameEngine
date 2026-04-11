@@ -28,7 +28,20 @@ namespace animation {
         Animation(const std::string &animationPath, ModelAnimation *model) {
             Assimp::Importer importer;
             const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
-            assert(scene && scene->mRootNode);
+
+//            assert(scene && scene->mRootNode);
+
+            if (!scene || !scene->mRootNode) {
+                std::cerr << "Failed to load animation: " << animationPath << "\n";
+                std::cerr << "Assimp error: " << importer.GetErrorString() << "\n";
+                throw std::runtime_error("Animation file failed to load: " + animationPath);
+            }
+
+            if (scene->mNumAnimations == 0) {
+                std::cerr << "Animation file has no animations: " << animationPath << "\n";
+                throw std::runtime_error("No animations found in: " + animationPath);
+            }
+
             auto animation = scene->mAnimations[0];
             m_Duration = animation->mDuration;
             m_TicksPerSecond = animation->mTicksPerSecond;

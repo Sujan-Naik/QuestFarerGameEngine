@@ -5,7 +5,8 @@
 
 using namespace player;
 
-Player::Player(std::shared_ptr<Grid> gridPtr) : grid(std::move(gridPtr)) {}
+Player::Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent * avatar)
+        : grid(std::move(gridPtr)), avatar(avatar) {        camera->setTransform(*avatar->getTransform());}
 
 
 
@@ -20,7 +21,6 @@ const rendering::RenderContext Player::getRenderContext() const {
 
 void Player::processInput(GLFWwindow* window, double timeScale)
 {
-    std::cout << timeScale << std::endl;
     actionTimer -= FIXED_TIMESTEP * timeScale;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
@@ -29,38 +29,66 @@ void Player::processInput(GLFWwindow* window, double timeScale)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::FORWARD, timeScale);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::BACKWARD, timeScale);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::LEFT, timeScale);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::RIGHT, timeScale);
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::UP, timeScale);
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        camera->processKeyboard(CameraMovement::DOWN, timeScale);
+
+    if (false) {
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::FORWARD, timeScale);
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::BACKWARD, timeScale);
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::LEFT, timeScale);
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::RIGHT, timeScale);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::UP, timeScale);
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+            camera->processKeyboard(CameraMovement::DOWN, timeScale);
 
 
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        if (!cursorEnabled && actionTimer<=0.0f)
-        {
-            RaycastResult result = raycast(100);
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            if (!cursorEnabled && actionTimer <= 0.0f) {
+                RaycastResult result = raycast(100);
 
-            if (result.hit){
-                grid->setVoxel(result.voxelPos.x,result.voxelPos.y, result.voxelPos.z, VoxelType::AIR );
+                if (result.hit) {
+                    grid->setVoxel(result.voxelPos.x, result.voxelPos.y, result.voxelPos.z, VoxelType::AIR);
+                    actionTimer = ACTION_COOLDOWN;
+                }
+            }
+        }
+        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+            if (actionTimer <= 0.0f) {
+                handleRightClick();
                 actionTimer = ACTION_COOLDOWN;
             }
         }
-    }
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-        if (actionTimer<=0.0f) {
-            handleRightClick();
-            actionTimer = ACTION_COOLDOWN;
+    } else {
+
+        camera->setPosition(avatar->getTransform()->position + (camera->getFront() * glm::vec3{-2,0,-2} + camera->getUp()) * avatar->getTransform()->scale);
+
+        float angle = camera->getAngleWithTransform(*avatar->getTransform());
+        float threshold = 5.0f;
+
+        if (angle > threshold) {
+            // Use Slerp (Spherical Linear Interpolation) for smooth rotation
+            // Define a target rotation based on camera's horizontal yaw
+            glm::quat targetRot = glm::quat(glm::vec3(0, glm::radians(camera->getYaw()), 0));
+
+            avatar->getTransform()->rotation = glm::slerp(avatar->getTransform()->rotation, targetRot, 0.1f);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+                avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::RUN);
+            } else {
+                avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::WALK);
+            }
+        } else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+            avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::JUMP);
+        }  else {
+            avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::IDLE);
         }
     }
-
 }
 
 
@@ -180,5 +208,15 @@ RaycastResult Player::raycast(float maxDistance) {
         }
     }
     return {false};
+}
+
+
+
+void Player::setAvatar(scene::components::CharacterControllerComponent* newAvatar) {
+    avatar = newAvatar;
+}
+
+scene::components::CharacterControllerComponent* Player::getAvatar() {
+    return avatar;
 }
 

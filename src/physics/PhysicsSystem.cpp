@@ -1,15 +1,14 @@
 #include "../../include/physics/PhysicsSystem.h"
-#include "../../include/scene/components/PhysicsComponent.h"
 #include "../../include/voxel/Grid.h"
 
 #include <cmath>
 
 using namespace physics;
-void PhysicsSystem::step(PhysicsComponent* components, int count,
+void PhysicsSystem::step( scene::components::PhysicsComponent* components, int count,
                          std::unique_ptr<GameObject>* gameObjects,
                          std::shared_ptr<Grid> grid, float dt) {
     for (int i = 0; i < count; ++i) {
-        PhysicsComponent& comp = components[i];
+        scene::components::PhysicsComponent& comp = components[i];
         GameObject* obj = gameObjects[comp.getEntityId()].get();
 
         // Apply gravity and integrate

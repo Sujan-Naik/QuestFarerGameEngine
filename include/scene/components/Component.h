@@ -3,21 +3,30 @@
 
 #include "../objects/GameObject.h"
 
-class Component{
-protected:
-    int entityId;
+namespace scene::components {
 
-public:
+    class ECSManager; // Forward declaration instead of include
 
-    Component(int entityId) : entityId(entityId) {}
 
-    virtual ~Component() = default;
+    class Component {
+    protected:
+        int entityId;
+        std::shared_ptr<ECSManager> ecsManager;
+    public:
 
-    virtual void receive(int message) = 0;
+        Component(int entityId) : entityId(entityId) {}
 
-    virtual void update(GameObject* gameObject) = 0;
+        void setECSManager(std::shared_ptr<ECSManager> newEcsManager){
+            ecsManager = std::move(newEcsManager);
+        }
 
-    int getEntityId(){return entityId;}
-};
+        virtual ~Component() = default;
 
+        virtual void receive(int message) = 0;
+
+        virtual void update() = 0;
+
+        int getEntityId() { return entityId; }
+    };
+}
 #endif //QUESTFARERGAMEENGINE_COMPONENT_H

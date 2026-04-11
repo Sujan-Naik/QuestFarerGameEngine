@@ -27,7 +27,8 @@
 #include <vector>
 
 using namespace std;
-using namespace mesh;
+using namespace rendering::mesh;
+using namespace rendering;
 using namespace animation;
 
 

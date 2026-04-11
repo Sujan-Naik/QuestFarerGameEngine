@@ -12,9 +12,13 @@
 #include "../rendering/VoxelRenderer.h"
 #include "../scene/objects/CustomMeshObject.h"
 #include "../scene/objects/AnimationModelObject.h"
+#include "../scene/components/ECSManager.h"
+
 using namespace logger;
 using namespace player;
 using namespace physics;
+using namespace scene::components;
+
 
 namespace world {
     class World {
@@ -27,22 +31,15 @@ namespace world {
         std::unique_ptr<LightingRenderer> lighting;
 
 
-        // ECS State
-        std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
-        int numEntities = 0;
-
-        PhysicsComponent physicsComponentsDense[MAX_ENTITIES];
-        int physicsComponentsSparse[MAX_ENTITIES];
-        int physicsComponentsAmount = 0;
-
-        AIComponent aiComponentsDense[MAX_ENTITIES];
-        int aiComponentsSparse[MAX_ENTITIES];
-        int aiComponentsAmount = 0;
 
         std::shared_ptr<Logger> logger = std::make_shared<Logger>("world_log.txt");
 
         GLFWwindow *window;
 
+        std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
+        int numEntities = 0;
+
+        std::shared_ptr<ECSManager> ecsManager;
 
         void createVoxels() {
             auto voxelShader = std::make_unique<Shader>(
@@ -66,42 +63,64 @@ namespace world {
         }
 
 
-        void addAIComponent(int entityID, const AIComponent &component) {
-            aiComponentsSparse[entityID] = aiComponentsAmount;
-            aiComponentsDense[aiComponentsAmount] = component;
-            aiComponentsAmount++;
-        }
-
-        void removeAIComponent(int entityID) {
-            int denseIndex = aiComponentsSparse[entityID];
-
-            aiComponentsDense[denseIndex] = aiComponentsDense[aiComponentsAmount - 1];
-            aiComponentsSparse[entityID] = -1;
-
-            aiComponentsAmount--;
-        }
 
 
-        void addPhysicsComponent(int entityID, const PhysicsComponent &component) {
-            physicsComponentsSparse[entityID] = physicsComponentsAmount;
-            physicsComponentsDense[physicsComponentsAmount] = component;
-            physicsComponentsAmount++;
-        }
 
-        void removePhysicsComponent(int entityID) {
-            int denseIndex = physicsComponentsSparse[entityID];
-
-            physicsComponentsDense[denseIndex] = physicsComponentsDense[physicsComponentsAmount - 1];
-            physicsComponentsSparse[entityID] = -1;
-
-            physicsComponentsAmount--;
-        }
+        void initialisePlayer(glm::vec3 pos) {
 
 
-        void initialisePlayer() {
 
-            player = std::make_shared<Player>(grid);
+            std::shared_ptr<ModelAnimation> ourModel = std::make_unique<ModelAnimation>(
+                    "resources/objects/Ch36_1001.dae");
+            auto ourShader = std::make_unique<Shader>(
+                    "../shader/vertex/anim_model.vs",
+                    "../shader/fragment/anim_model.fs"
+            );
+
+            std::shared_ptr<animation::Animator> animator = std::make_unique<animation::Animator>();
+
+            auto characterTransform = Transform{};
+            characterTransform.position = pos;
+
+            gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, ourModel,
+                                                                              std::move(ourShader), characterTransform,
+                                                                              animator);
+
+
+            CharacterControllerComponent characterControllerComponent(numEntities, &gameObjects[numEntities]->transform);
+            characterControllerComponent.initialize(ourModel, animator);
+            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::IDLE,"resources/objects/animation/humanoid/idle.dae");
+            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::WALK,"resources/objects/animation/humanoid/walking.dae");
+            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::RUN,"resources/objects/animation/humanoid/running.dae");
+            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::JUMP,"resources/objects/animation/humanoid/jump.dae");
+
+            ecsManager->addCharacterControllerComponent(numEntities, characterControllerComponent);
+
+            player = std::make_shared<Player>(grid, &ecsManager->getCharacterControllerComponentFromSparse(numEntities));
+
             glfwSetWindowUserPointer(window, player.get());
+
+
+            // Extract collision data before moving
+            PhysicsComponent physicsComp(numEntities);
+
+            std::vector<std::vector<glm::vec3>> meshVertices;
+            std::vector<std::vector<unsigned int>> meshIndices;
+
+            for (const auto &mesh: ourModel->meshes) {
+                std::vector<glm::vec3> positions;
+                for (const auto &vertex: mesh.vertices) {
+                    positions.push_back(vertex.Position);
+                }
+                meshVertices.push_back(positions);
+                meshIndices.push_back(mesh.indices);
+            }
+            physicsComp.addCollisionMeshesFromModel(meshVertices, meshIndices);
+
+
+
+            ecsManager->addPhysicsComponent(numEntities, physicsComp);
+            numEntities++;
 
         }
 
@@ -143,7 +162,7 @@ namespace world {
                                                                               std::move(ourShader), characterTransform,
                                                                               std::move(animator));
 
-            addPhysicsComponent(numEntities, physicsComp);
+            ecsManager->addPhysicsComponent(numEntities, physicsComp);
             numEntities++;
         }
 
@@ -151,6 +170,7 @@ namespace world {
 
         World() {
             grid = std::make_shared<Grid>();
+            ecsManager = std::make_shared<ECSManager>();
         }
 
         std::shared_ptr<Player> getPlayer() {
@@ -162,41 +182,29 @@ namespace world {
             this->window = window;
 
             createVoxels();
-            initialisePlayer();
-            createEntity({20, 20, 20});
+            initialisePlayer({30, 30, 30});
+//            createEntity({20, 20, 20});
         }
 
         void update(double timeScale) {
 
             player->processInput(window, timeScale);
 
+            ecsManager->update();
 
-            // Process AI.
-            logger->log(DEBUG, "AI Component updates begin: " + std::to_string(aiComponentsAmount));
-
-            for (int i = 0; i < aiComponentsAmount; i++) {
-                aiComponentsDense[i].update(gameObjects[aiComponentsDense[i].getEntityId()].get());
-            }
-
-            logger->log(DEBUG, "Physics Component updates begin: " + std::to_string(physicsComponentsAmount));
-
-
-            // Update physics.
-            for (int i = 0; i < physicsComponentsAmount; i++) {
-                physicsComponentsDense[i].update(gameObjects[physicsComponentsDense[i].getEntityId()].get());
-            }
-
-            physicsSystem->step(physicsComponentsDense, physicsComponentsAmount,
+            physicsSystem->step(ecsManager->getPhysicsComponentsDense(), ecsManager->getPhysicsComponentsAmount(),
                                 gameObjects, grid, timeScale * FIXED_TIMESTEP);
         }
 
         void render(double timeScale) {
 
-            RenderContext renderContext = player->getRenderContext();
+            if (player) {
+                RenderContext renderContext = player->getRenderContext();
 
-            // Draw to screen.
-            for (int i = 0; i < numEntities; i++) {
-                gameObjects[i]->draw(renderContext);
+                // Draw to screen.
+                for (int i = 0; i < numEntities; i++) {
+                    gameObjects[i]->draw(renderContext);
+                }
             }
         }
 
