@@ -79,7 +79,9 @@ namespace world {
 
             std::shared_ptr<animation::Animator> animator = std::make_unique<animation::Animator>();
 
-            auto characterTransform = Transform{};
+
+            auto characterTransform = Transform{ourModel->getMeshVerticesCollapsed()};
+
             characterTransform.position = pos;
 
             gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, ourModel,
@@ -94,7 +96,9 @@ namespace world {
             characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::RUN,"resources/objects/animation/humanoid/running.dae");
             characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::JUMP,"resources/objects/animation/humanoid/jump.dae");
 
+            characterControllerComponent.switchAnimation(scene::components::CharacterControllerComponent::AnimationState::IDLE);
             ecsManager->addCharacterControllerComponent(numEntities, characterControllerComponent);
+
 
             player = std::make_shared<Player>(grid, &ecsManager->getCharacterControllerComponentFromSparse(numEntities));
 
@@ -104,18 +108,7 @@ namespace world {
             // Extract collision data before moving
             PhysicsComponent physicsComp(numEntities);
 
-            std::vector<std::vector<glm::vec3>> meshVertices;
-            std::vector<std::vector<unsigned int>> meshIndices;
-
-            for (const auto &mesh: ourModel->meshes) {
-                std::vector<glm::vec3> positions;
-                for (const auto &vertex: mesh.vertices) {
-                    positions.push_back(vertex.Position);
-                }
-                meshVertices.push_back(positions);
-                meshIndices.push_back(mesh.indices);
-            }
-            physicsComp.addCollisionMeshesFromModel(meshVertices, meshIndices);
+            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
 
 
 
@@ -144,18 +137,7 @@ namespace world {
             // Extract collision data before moving
             PhysicsComponent physicsComp(numEntities);
 
-            std::vector<std::vector<glm::vec3>> meshVertices;
-            std::vector<std::vector<unsigned int>> meshIndices;
-
-            for (const auto &mesh: ourModel->meshes) {
-                std::vector<glm::vec3> positions;
-                for (const auto &vertex: mesh.vertices) {
-                    positions.push_back(vertex.Position);
-                }
-                meshVertices.push_back(positions);
-                meshIndices.push_back(mesh.indices);
-            }
-            physicsComp.addCollisionMeshesFromModel(meshVertices, meshIndices);
+            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
 
             // Now move the model
             gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel),
@@ -189,6 +171,7 @@ namespace world {
         void update(double timeScale) {
 
             player->processInput(window, timeScale);
+            player->updateCamera();
 
             ecsManager->update();
 

@@ -41,7 +41,9 @@ namespace player {
 
         Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent* avatar);
 
-        [[nodiscard]] const rendering::RenderContext getRenderContext() const;
+        void updateCamera();
+
+            [[nodiscard]] const rendering::RenderContext getRenderContext() const;
 
         void processInput(GLFWwindow *window, double elapsed);
 

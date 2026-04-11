@@ -7,7 +7,7 @@
 #include "GameObject.h"
 #include "../../animation/Animator.h"
 
-struct AnimationModelObject: GameObject {
+struct AnimationModelObject : GameObject {
     std::shared_ptr<ModelAnimation> model;
     std::unique_ptr<Shader> shader;
     std::shared_ptr<animation::Animator> animator;
@@ -15,7 +15,6 @@ struct AnimationModelObject: GameObject {
     glm::vec3 previousFrameRootPos = glm::vec3(0.0f);
     glm::quat previousFrameRootRot = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
-    // NEW: Trackers to maintain velocity during the loop-wrap frame
     glm::vec3 lastFrameDeltaPos = glm::vec3(0.0f);
     glm::quat lastFrameDeltaRot = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
 
@@ -44,9 +43,7 @@ struct AnimationModelObject: GameObject {
         glm::quat frameDeltaRot;
 
         if (animator->DidLoopThisFrame()) {
-            // THE FIX: Extrapolate this single frame's motion using the previous frame's velocity.
-            // This perfectly bridges the gap between the end of the clip and the start of the next,
-            // preventing the 1-frame stall that causes the visual "pop back".
+            // Use extrapolated velocity to bridge the loop gap
             frameDeltaPos = lastFrameDeltaPos;
             frameDeltaRot = lastFrameDeltaRot;
         } else {
@@ -54,16 +51,18 @@ struct AnimationModelObject: GameObject {
             frameDeltaRot = currentRootRot * glm::inverse(previousFrameRootRot);
         }
 
-        // Cache the delta for the next frame (in case the next frame is a loop)
+        // Cache deltas for the next frame
         lastFrameDeltaPos = frameDeltaPos;
         lastFrameDeltaRot = frameDeltaRot;
 
-        // Transform local animation motion into World Space
+        // Apply movement: only affect X and Z to keep character on ground
+        // Note: transform.rotation is the GameObject's world orientation
         glm::vec3 worldDeltaPos = transform.rotation * frameDeltaPos;
-
-        // Apply continuously to GameObject transform
         transform.position.x += worldDeltaPos.x;
         transform.position.z += worldDeltaPos.z;
+
+        // Optional: If you want the animation to turn the GameObject
+        // transform.rotation = transform.rotation * frameDeltaRot;
 
         previousFrameRootPos = currentRootPos;
         previousFrameRootRot = currentRootRot;
@@ -76,6 +75,7 @@ struct AnimationModelObject: GameObject {
         }
 
         shader->use();
+
         auto transforms = animator ? animator->GetFinalBoneMatrices() : std::vector<glm::mat4>();
         for (int i = 0; i < transforms.size(); ++i) {
             shader->setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
@@ -84,11 +84,13 @@ struct AnimationModelObject: GameObject {
         shader->setMat4("view", ctx.view);
         shader->setMat4("projection", ctx.projection);
 
+        // Calculate model matrix from GameObject transform (Position, Rotation, Scale)
         glm::mat4 modelMat = getModelMatrix();
 
         if (animator) {
             glm::vec3 rootPos = animator->GetRootBonePosition();
-            // Counter-act the animation's visual forward translation
+            // Counter-act the animation's visual forward translation so the mesh stays at GameObject origin
+            // We only subtract X and Z because we are applying those to the GameObject transform
             modelMat = glm::translate(modelMat, glm::vec3(-rootPos.x, 0.0f, -rootPos.z));
         }
 
@@ -97,4 +99,4 @@ struct AnimationModelObject: GameObject {
     }
 };
 
-#endif //QUESTFARERGAMEENGINE_ANIMATIONMODELOBJECT_H
+#endif

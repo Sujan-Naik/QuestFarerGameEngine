@@ -4,6 +4,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <cmath>
 
+
 Camera::Camera() = default;
 
 void Camera::processKeyboard(CameraMovement direction, double deltaTime)
@@ -48,12 +49,18 @@ void Camera::processMouseMovement(float xpos, float ypos)
         firstMouse = false;
     }
 
-    yaw   += (xpos - lastX) * DEFAULT_SENSITIVITY;
-    pitch  = glm::clamp(pitch + (lastY - ypos) * DEFAULT_SENSITIVITY, -89.0f, 89.0f);
+    yaw -= (xpos - lastX) * DEFAULT_SENSITIVITY;
+        pitch  = glm::clamp(pitch + (lastY - ypos) * DEFAULT_SENSITIVITY, -89.0f, 89.0f);
     lastX  = xpos;
     lastY  = ypos;
 
     updateCameraVectors();
+}
+
+glm::quat Camera::getRotation() {
+    glm::quat yawQuat = glm::angleAxis(glm::radians(yaw), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::quat pitchQuat = glm::angleAxis(glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+    return yawQuat * pitchQuat;
 }
 
 void Camera::processScroll(float yoffset)
@@ -99,8 +106,8 @@ glm::mat4 Camera::getProjectionMatrix(float aspectRatio) const
     return glm::perspective(glm::radians(fov), aspectRatio, 0.1f, 10000.0f);
 }
 
-void Camera::setPosition(const glm::vec3 &position) {
-    Camera::position = position;
+void Camera::setPosition(const glm::vec3 &newPosition) {
+    position = newPosition;
 }
 
 const glm::vec3& Camera::getPosition() const

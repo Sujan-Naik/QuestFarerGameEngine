@@ -37,7 +37,7 @@ using namespace std;
 class ModelAnimation
 {
 public:
-    // model data 
+    // model data
     vector<Texture> textures_loaded;	// stores all the textures loaded so far, optimization to make sure textures aren't loaded more than once.
     vector<MeshAnimation>    meshes;
     string directory;
@@ -60,6 +60,37 @@ public:
 
     auto& GetBoneInfoMap() { return m_BoneInfoMap; }
     int& GetBoneCount() { return m_BoneCounter; }
+
+    std::vector<glm::vec3> getMeshVerticesCollapsed() const {
+        std::vector<glm::vec3> allVertices;
+        for (const auto& mesh : meshes) {
+            for (const auto& vertex : mesh.vertices) {
+                allVertices.push_back(vertex.Position);
+            }
+        }
+        return allVertices;
+    }
+
+
+    std::vector<std::vector<glm::vec3>> getMeshVertices() const {
+        std::vector<std::vector<glm::vec3>> meshVertices;
+        for (const auto& mesh : meshes) {
+            std::vector<glm::vec3> positions;
+            for (const auto& vertex : mesh.vertices) {
+                positions.push_back(vertex.Position);
+            }
+            meshVertices.push_back(positions);
+        }
+        return meshVertices;
+    }
+
+    std::vector<std::vector<unsigned int>> getMeshIndices() const {
+        std::vector<std::vector<unsigned int>> meshIndices;
+        for (const auto& mesh : meshes) {
+            meshIndices.push_back(mesh.indices);
+        }
+        return meshIndices;
+    }
 
 
 private:
@@ -92,7 +123,7 @@ private:
         // process each mesh located at the current node
         for(unsigned int i = 0; i < node->mNumMeshes; i++)
         {
-            // the node object only contains indices to index the actual objects in the scene. 
+            // the node object only contains indices to index the actual objects in the scene.
             // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
             meshes.push_back(processMesh(mesh, scene));

@@ -6,7 +6,9 @@
 using namespace player;
 
 Player::Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent * avatar)
-        : grid(std::move(gridPtr)), avatar(avatar) {        camera->setTransform(*avatar->getTransform());}
+        : grid(std::move(gridPtr)), avatar(avatar) {
+
+}
 
 
 
@@ -19,8 +21,23 @@ const rendering::RenderContext Player::getRenderContext() const {
     return rendering::RenderContext{camera->getPosition(), projection, view};
 }
 
+void Player::updateCamera(){
+    if (avatar){
+        glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw()), glm::vec3(0.0f, 1.0f, 0.0f));
+        avatar->getTransform()->rotation = yawRotation;
+
+        glm::vec3 offset =(avatar->getTransform()->getBack() * glm::vec3(2,2,2) +  avatar->getTransform()->getUp() * glm::vec3(0,0.1,0) ) *
+
+                          avatar->getTransform()->getSize().x ;
+
+        camera->setPosition( avatar->getTransform()->getTop() + offset);
+
+    }
+}
+
 void Player::processInput(GLFWwindow* window, double timeScale)
 {
+
     actionTimer -= FIXED_TIMESTEP * timeScale;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
@@ -64,18 +81,8 @@ void Player::processInput(GLFWwindow* window, double timeScale)
         }
     } else {
 
-        camera->setPosition(avatar->getTransform()->position + (camera->getFront() * glm::vec3{-2,0,-2} + camera->getUp()) * avatar->getTransform()->scale);
 
-        float angle = camera->getAngleWithTransform(*avatar->getTransform());
-        float threshold = 5.0f;
 
-        if (angle > threshold) {
-            // Use Slerp (Spherical Linear Interpolation) for smooth rotation
-            // Define a target rotation based on camera's horizontal yaw
-            glm::quat targetRot = glm::quat(glm::vec3(0, glm::radians(camera->getYaw()), 0));
-
-            avatar->getTransform()->rotation = glm::slerp(avatar->getTransform()->rotation, targetRot, 0.1f);
-        }
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
@@ -101,6 +108,8 @@ void Player::mouse_callback(GLFWwindow* window, double xpos, double ypos)
     if (player && !player->cursorEnabled)
     {
         player->processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
+
+
     }
 }
 

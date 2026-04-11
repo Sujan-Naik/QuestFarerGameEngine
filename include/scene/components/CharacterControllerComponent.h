@@ -7,6 +7,7 @@
 
 #include <memory>
 #include <map>
+#include <utility>
 
 using namespace rendering::mesh;
 using namespace rendering::model;
@@ -28,7 +29,7 @@ namespace scene::components {
         std::shared_ptr<ModelAnimation> skeleton;
         std::shared_ptr<Animator> animator;
         std::map<AnimationState, std::shared_ptr<Animation>> animations;
-        AnimationState currentState = AnimationState::IDLE;
+        AnimationState currentState;
 
         Transform* transform;
 
@@ -40,8 +41,8 @@ namespace scene::components {
         CharacterControllerComponent() : Component(-1) {}
 
         void initialize(std::shared_ptr<ModelAnimation> model, std::shared_ptr<Animator> anim) {
-            skeleton = model;
-            animator = anim;
+            skeleton = std::move(model);
+            animator = std::move(anim);
         }
 
         void registerAnimation(AnimationState state, const std::string &animationPath) {
@@ -75,6 +76,7 @@ namespace scene::components {
 
             currentState = newState;
             if (animator) {
+                std::cout << "playing" << std::endl;
                 animator->PlayAnimation(animations[newState]);
             }
         }
@@ -101,9 +103,7 @@ namespace scene::components {
         }
 
         void update() override {
-            if (animator) {
-                animator->UpdateAnimation(FIXED_TIMESTEP);
-            }
+
         }
 
         Transform* getTransform() {

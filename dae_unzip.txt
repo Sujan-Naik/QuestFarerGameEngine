@@ -1,0 +1,9 @@
+for file in *.dae; do
+    temp_dir=$(mktemp -d)
+    cp "$file" "$temp_dir/archive.zip"
+    unzip -q "$temp_dir/archive.zip" -d "$temp_dir"
+    actual_dae=$(find "$temp_dir" -name "*.dae" -type f | head -1)
+    [ -f "$actual_dae" ] && cp "$actual_dae" "$file"
+    rm -rf "$temp_dir"
+    echo "Fixed: $file"
+done
