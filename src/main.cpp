@@ -14,7 +14,6 @@
 #include "../include/rendering/VoxelRenderer.h"
 #include "../include/player/Player.h"
 #include "../include/animation/Animation.h"
-#include "../include/animation/Animator.h"
 #include "../include/scene/objects/AnimationModelObject.h"
 #include "../include/world/World.h"
 

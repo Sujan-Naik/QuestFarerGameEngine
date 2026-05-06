@@ -35,9 +35,9 @@ constexpr float MC_NOISE_FREQ = 0.0201f;  // perlin frequency (larger = smaller 
 constexpr float MC_WORLD_SCALE = 5.0f;    // uniform scale applied to the final mesh
 
 
-constexpr int X_CHUNKS = 1, Z_CHUNKS=1;
+constexpr int X_CHUNKS = 4, Z_CHUNKS=4;
 
 
-constexpr int X_CHUNK_SIZE = 64, Y_CHUNK_SIZE=64, Z_CHUNK_SIZE=64;
+constexpr int X_CHUNK_SIZE = 16, Y_CHUNK_SIZE=16, Z_CHUNK_SIZE=16;
 
 #endif //QUESTFARERGAMEENGINE_GLOBALS_H

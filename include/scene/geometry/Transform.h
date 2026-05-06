@@ -76,7 +76,7 @@ struct Transform {
             }
 
     glm::vec3 getRight() const {
-        return glm::normalize(glm::vec3(1.0f, 0.0f, 0.0f) * rotation);
+        return glm::normalize(rotation * glm::vec3(1.0f, 0.0f, 0.0f));
     }
 
     glm::vec3 getLeft() const {
@@ -84,9 +84,8 @@ struct Transform {
     }
 
     glm::vec3 getUp() const {
-        return glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f) * rotation);
+        return glm::normalize(rotation * glm::vec3(0.0f, 1.0f, 0.0f));
     }
-
     glm::vec3 getDown() const {
         return -getUp();
     }

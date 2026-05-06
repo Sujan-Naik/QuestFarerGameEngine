@@ -1,3 +1,4 @@
 /home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/CMakeFiles/QuestFarerGameEngine.dir
+/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/CMakeFiles/ForceCopyResources.dir
 /home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/CMakeFiles/edit_cache.dir
 /home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug/CMakeFiles/rebuild_cache.dir

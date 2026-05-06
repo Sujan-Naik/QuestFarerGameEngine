@@ -1,7 +1,6 @@
 #ifndef QUESTFARERGAMEENGINE_ANIMATION_H
 #define QUESTFARERGAMEENGINE_ANIMATION_H
 
-
 #include <vector>
 #include <map>
 #include <glm/glm.hpp>
@@ -25,34 +24,59 @@ namespace animation {
     public:
         Animation() = default;
 
+        // LEGACY CONSTRUCTOR (Keep for your old .dae loading logic)
         Animation(const std::string &animationPath, ModelAnimation *model) {
             Assimp::Importer importer;
             const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
 
-//            assert(scene && scene->mRootNode);
-
             if (!scene || !scene->mRootNode) {
-                std::cerr << "Failed to load animation: " << animationPath << "\n";
-                std::cerr << "Assimp error: " << importer.GetErrorString() << "\n";
                 throw std::runtime_error("Animation file failed to load: " + animationPath);
-            }
-
-            if (scene->mNumAnimations == 0) {
-                std::cerr << "Animation file has no animations: " << animationPath << "\n";
-                throw std::runtime_error("No animations found in: " + animationPath);
             }
 
             auto animation = scene->mAnimations[0];
             m_Duration = animation->mDuration;
             m_TicksPerSecond = animation->mTicksPerSecond;
-            aiMatrix4x4 globalTransformation = scene->mRootNode->mTransformation;
-            globalTransformation = globalTransformation.Inverse();
             ReadHierarchyData(m_RootNode, scene->mRootNode);
             ReadMissingBones(animation, *model);
         }
 
-        ~Animation() {
+        // NEW CONSTRUCTOR FOR .GLB / MUSHED FILES
+        Animation(const std::string &path, const aiScene* scene, unsigned int animationIndex, ModelAnimation* model) {
+            if (!scene || animationIndex >= scene->mNumAnimations) {
+                throw std::runtime_error("Invalid scene or animation index for: " + path);
+            }
+
+            auto animation = scene->mAnimations[animationIndex];
+            m_Duration = animation->mDuration;
+            m_TicksPerSecond = animation->mTicksPerSecond;
+
+            ReadHierarchyData(m_RootNode, scene->mRootNode);
+            ReadMissingBones(animation, *model);
         }
+
+        // NEW: Load animation separately (model must be loaded first)
+        Animation(const std::string &animationPath, unsigned int animationIndex = 0) {
+            Assimp::Importer importer;
+            const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
+
+            if (!scene || !scene->mRootNode) {
+                throw std::runtime_error("Animation file failed to load: " + animationPath);
+            }
+
+            if (animationIndex >= scene->mNumAnimations) {
+                throw std::runtime_error("Animation index out of range: " + animationPath);
+            }
+
+            auto animation = scene->mAnimations[animationIndex];
+            m_Duration = animation->mDuration;
+            m_TicksPerSecond = animation->mTicksPerSecond;
+
+            ReadHierarchyData(m_RootNode, scene->mRootNode);
+            // Store raw animation data without linking to model yet
+            ReadBonesWithoutModel(animation);
+        }
+
+        ~Animation() {}
 
         Bone *FindBone(const std::string &name) {
             auto iter = std::find_if(m_Bones.begin(), m_Bones.end(),
@@ -64,29 +88,45 @@ namespace animation {
             else return &(*iter);
         }
 
+        // Link bones to model after separate loading
+        void LinkBonesWithModel(ModelAnimation& model) {
+            auto &boneInfoMap = model.GetBoneInfoMap();
+            int &boneCount = model.GetBoneCount();
+
+            for (auto& bone : m_Bones) {
+                std::string boneName = bone.GetBoneName();
+                if (boneInfoMap.find(boneName) == boneInfoMap.end()) {
+                    boneInfoMap[boneName].id = boneCount;
+                    boneCount++;
+                }
+                bone.SetBoneId(boneInfoMap[boneName].id);
+            }
+            m_BoneInfoMap = boneInfoMap;
+        }
+
+        void ApplyCoordinateSystemConversion() {
+            glm::mat4 conversion = glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+            ApplyConversionToNode(m_RootNode, conversion);
+        }
 
         inline float GetTicksPerSecond() { return m_TicksPerSecond; }
-
         inline float GetDuration() { return m_Duration; }
-
         inline const AssimpNodeData &GetRootNode() { return m_RootNode; }
-
-        inline const std::map<std::string, BoneInfo> &GetBoneIDMap() {
-            return m_BoneInfoMap;
-        }
+        inline const std::map<std::string, BoneInfo> &GetBoneIDMap() { return m_BoneInfoMap; }
+        inline int GetBoneCount() const { return m_Bones.size(); }
 
     private:
         void ReadMissingBones(const aiAnimation *animation, ModelAnimation &model) {
             int size = animation->mNumChannels;
+            auto &boneInfoMap = model.GetBoneInfoMap();
+            int &boneCount = model.GetBoneCount();
 
-            auto &boneInfoMap = model.GetBoneInfoMap();//getting m_BoneInfoMap from StaticModel class
-            int &boneCount = model.GetBoneCount(); //getting the m_BoneCounter from StaticModel class
-
-            //reading channels(bones engaged in an animation and their keyframes)
             for (int i = 0; i < size; i++) {
                 auto channel = animation->mChannels[i];
                 std::string boneName = channel->mNodeName.data;
-
+                if (boneName == "root") {
+                    std::cout << "FOUND ROOT NODE - Channel Index: " << i << std::endl;
+                }
                 if (boneInfoMap.find(boneName) == boneInfoMap.end()) {
                     boneInfoMap[boneName].id = boneCount;
                     boneCount++;
@@ -94,13 +134,29 @@ namespace animation {
                 m_Bones.push_back(Bone(channel->mNodeName.data,
                                        boneInfoMap[channel->mNodeName.data].id, channel));
             }
-
             m_BoneInfoMap = boneInfoMap;
+        }
+
+        // NEW: Read bones without model reference
+        void ReadBonesWithoutModel(const aiAnimation *animation) {
+            int size = animation->mNumChannels;
+            int tempBoneCounter = 0;
+
+            for (int i = 0; i < size; i++) {
+                auto channel = animation->mChannels[i];
+                std::string boneName = channel->mNodeName.data;
+                if (boneName == "root") {
+                    std::cout << "FOUND ROOT NODE - Channel Index: " << i << std::endl;
+                }
+                // Assign temporary IDs; these will be remapped when linking to model
+                m_Bones.push_back(Bone(boneName, tempBoneCounter, channel));
+                m_BoneInfoMap[boneName].id = tempBoneCounter;
+                tempBoneCounter++;
+            }
         }
 
         void ReadHierarchyData(AssimpNodeData &dest, const aiNode *src) {
             assert(src);
-
             dest.name = src->mName.data;
             dest.transformation = AssimpGLMHelpers::ConvertMatrixToGLMFormat(src->mTransformation);
             dest.childrenCount = src->mNumChildren;
@@ -112,6 +168,14 @@ namespace animation {
             }
         }
 
+        void ApplyConversionToNode(AssimpNodeData &node, const glm::mat4 &conversion) {
+            node.transformation = conversion * node.transformation;
+
+            for (auto &child : node.children) {
+                ApplyConversionToNode(child, conversion);
+            }
+        }
+
         float m_Duration;
         int m_TicksPerSecond;
         std::vector<Bone> m_Bones;
@@ -120,6 +184,4 @@ namespace animation {
     };
 }
 
-
-
-#endif //QUESTFARERGAMEENGINE_ANIMATION_H
+#endif

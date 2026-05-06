@@ -76,12 +76,17 @@ namespace animation {
             m_LocalTransform = translation * rotation * scale;
         }
 
+
         glm::mat4 GetLocalTransform() { return m_LocalTransform; }
 
         std::string GetBoneName() const { return m_Name; }
 
         int GetBoneID() { return m_ID; }
 
+
+        void SetBoneId(int id) {
+            m_ID = id;
+        }
 
         int GetPositionIndex(float animationTime) {
             for (int index = 0; index < m_NumPositions - 1; ++index) {
@@ -117,6 +122,7 @@ namespace animation {
             scaleFactor = midWayLength / framesDiff;
             return scaleFactor;
         }
+
 
         glm::mat4 InterpolatePosition(float animationTime) {
             if (1 == m_NumPositions)

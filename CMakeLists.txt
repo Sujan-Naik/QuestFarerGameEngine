@@ -48,7 +48,6 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/VoxelRenderer.h
         src/player/Player.cpp
         include/player/Player.h
-        include/animation/Animator.h
         include/animation/Bone.h
         include/animation/assimp_glm_helpers.h
         include/rendering/model/ModelAnimation.h
@@ -66,15 +65,19 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/model/Model.h
         include/scene/components/CharacterControllerComponent.h
         include/scene/components/ECSManager.h
+        include/scene/components/fsm/AnimationState.h
+        include/scene/components/fsm/AnimationFSM.h
+        include/animation/AnimationAssetLibrary.h
 )
 
-add_custom_command(
-        TARGET QuestFarerGameEngine POST_BUILD
+add_custom_target(ForceCopyResources
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/resources
-        ${CMAKE_BINARY_DIR}/resources
-        COMMENT "Copying resources..."
+        "${CMAKE_SOURCE_DIR}/resources"
+        "${CMAKE_BINARY_DIR}/resources"
+        COMMENT "Forcefully syncing resources..."
 )
+
+add_dependencies(QuestFarerGameEngine ForceCopyResources)
 
 find_package(assimp REQUIRED)
 target_link_libraries(QuestFarerGameEngine assimp)

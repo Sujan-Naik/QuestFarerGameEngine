@@ -10,9 +10,6 @@ Player::Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterContro
 
 }
 
-
-
-
 const rendering::RenderContext Player::getRenderContext() const {
     const glm::mat4 view       = camera->getViewMatrix();
     const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
@@ -84,14 +81,17 @@ void Player::processInput(GLFWwindow* window, double timeScale)
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-                avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::RUN);
+                avatar->setLocomotionSpeed(glm::min(avatar->getSpeed()+0.02f, 1.0f));  // Run
             } else {
-                avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::WALK);
+                avatar->setLocomotionSpeed(glm::min(avatar->getSpeed()+0.01f, 0.5f));  // Walk
+
             }
-        } else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-            avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::JUMP);
-        }  else {
-            avatar->switchAnimation(scene::components::CharacterControllerComponent::AnimationState::IDLE);
+//        }
+
+//        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+//            avatar->TransitionTo("jump");  // Or handle separately
+        } else {
+            avatar->setLocomotionSpeed(glm::max(avatar->getSpeed()-0.01f, 0.0f));  // Idle
         }
     }
 }

@@ -13,6 +13,7 @@
 #include "../scene/objects/CustomMeshObject.h"
 #include "../scene/objects/AnimationModelObject.h"
 #include "../scene/components/ECSManager.h"
+#include "../animation/AnimationAssetLibrary.h"
 
 using namespace logger;
 using namespace player;
@@ -65,88 +66,139 @@ namespace world {
 
 
 
-
         void initialisePlayer(glm::vec3 pos) {
+            // 1. Load the Asset Container (The "Mushed" .glb)
+            // This loads the Mesh, Bones, and all Animation Clips in one pass.
+            animation::AnimationAssetLibrary playerAssets;
+//            playerAssets.loadFromGLB("resources/objects/UAL1_Standard.glb");
+//            playerAssets.loadFromGLB("resources/objects/UAL2_Standard.glb");
 
 
+//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM_Model.fbx", "Model");
+//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Idle01.fbx", "Idle");
+//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Run01_Forward [RM].fbx", "Run");
 
-            std::shared_ptr<ModelAnimation> ourModel = std::make_unique<ModelAnimation>(
-                    "resources/objects/Ch36_1001.dae");
+
+//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Walk01_Forward [RM].fbx", "Walk");
+
+
+            playerAssets.loadFromFBX("resources/objects/humanoid/character.fbx");
+
+            // Safety check: if the model didn't load, the rest will crash.
+            if (!playerAssets.model) {
+                std::cerr << "ERROR: Failed to load player assets from GLB!" << std::endl;
+                return;
+            }
+
+            // 2. Setup Shader
             auto ourShader = std::make_unique<Shader>(
                     "../shader/vertex/anim_model.vs",
                     "../shader/fragment/anim_model.fs"
             );
 
-            std::shared_ptr<animation::Animator> animator = std::make_unique<animation::Animator>();
-
-
-            auto characterTransform = Transform{ourModel->getMeshVerticesCollapsed()};
-
+            // 3. Setup World Transform
+            // Use the model from the library to calculate initial bounds/transform
+            auto characterTransform = Transform{playerAssets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
+            characterTransform.scale = {0.1, 0.1, 0.1};
 
-            gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, ourModel,
-                                                                              std::move(ourShader), characterTransform,
-                                                                              animator);
+            int entityId = numEntities;
+            auto sharedFSM = std::make_shared<AnimationFSM>();
+
+            // 4. Setup Idle State
+            auto idleState = std::make_shared<SimpleAnimationState>();
+            idleState->animation = playerAssets.get("HumanM@Idle01");
+            idleState->rootBoneNames = {"B-root"};
+
+// 5. Setup the Locomotion State
+            auto locState = std::make_shared<LocomotionBlendState>();
+            locState->walk = playerAssets.get("HumanM@Walk01_Forward [RM]");
+            locState->run = playerAssets.get("HumanM@Run01_Forward [RM]");
+            locState->rootBoneNames = {"B-root"};
+
+// Register both states
+            sharedFSM->RegisterState("Idle", idleState);
+            sharedFSM->RegisterState("Locomotion", locState);
+            sharedFSM->TransitionTo("Idle");  // Start in idle
 
 
-            CharacterControllerComponent characterControllerComponent(numEntities, &gameObjects[numEntities]->transform);
-            characterControllerComponent.initialize(ourModel, animator);
-            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::IDLE,"resources/objects/animation/humanoid/idle.dae");
-            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::WALK,"resources/objects/animation/humanoid/walking.dae");
-            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::RUN,"resources/objects/animation/humanoid/running.dae");
-            characterControllerComponent.registerAnimation(CharacterControllerComponent::AnimationState::JUMP,"resources/objects/animation/humanoid/jump.dae");
+            // 5. Create the Game Object
+            // We pass the model pointer directly from the library.
+            gameObjects[entityId] = std::make_unique<AnimationModelObject>(
+                    entityId,
+                    playerAssets.model,
+                    std::move(ourShader),
+                    characterTransform,
+                    sharedFSM
+            );
 
-            characterControllerComponent.switchAnimation(scene::components::CharacterControllerComponent::AnimationState::IDLE);
-            ecsManager->addCharacterControllerComponent(numEntities, characterControllerComponent);
+            // 6. Setup Character Controller Component
+            CharacterControllerComponent characterControllerComponent(
+                    entityId,
+                    &gameObjects[entityId]->transform,
+                    sharedFSM
+            );
 
+            // Initialize with the model to sync bone maps
+            characterControllerComponent.initialize(playerAssets.model);
+            characterControllerComponent.setLocomotionSpeed(0.0f); // Default to Idle
 
-            player = std::make_shared<Player>(grid, &ecsManager->getCharacterControllerComponentFromSparse(numEntities));
+            // Push to ECS
+            ecsManager->addCharacterControllerComponent(entityId, characterControllerComponent);
 
+            // 7. Setup Player Logic & Input
+            player = std::make_shared<Player>(
+                    grid,
+                    &ecsManager->getCharacterControllerComponentFromSparse(entityId)
+            );
+
+            // Link GLFW input to the player class
             glfwSetWindowUserPointer(window, player.get());
 
-
-            // Extract collision data before moving
-            PhysicsComponent physicsComp(numEntities);
-
-            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
-
-
-
-            ecsManager->addPhysicsComponent(numEntities, physicsComp);
-            numEntities++;
-
-        }
-
-
-        void createEntity(glm::vec3 pos) {
-            std::unique_ptr<ModelAnimation> ourModel = std::make_unique<ModelAnimation>(
-                    "resources/objects/animation/vampire/dancing_vampire.dae");
-            auto ourShader = std::make_unique<Shader>(
-                    "../shader/vertex/anim_model.vs",
-                    "../shader/fragment/anim_model.fs"
+            // 8. Physics Setup
+            // Pull the raw mesh data from the GLB for the collision shapes
+            PhysicsComponent physicsComp(entityId);
+            physicsComp.addCollisionMeshesFromModel(
+                    playerAssets.model->getMeshVertices(),
+                    playerAssets.model->getMeshIndices()
             );
 
-            std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>(
-                    "resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
-            std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(
-                    std::move(danceAnimation));
+            ecsManager->addPhysicsComponent(entityId, physicsComp);
 
-            auto characterTransform = Transform{};
-            characterTransform.position = pos;
-
-            // Extract collision data before moving
-            PhysicsComponent physicsComp(numEntities);
-
-            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
-
-            // Now move the model
-            gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel),
-                                                                              std::move(ourShader), characterTransform,
-                                                                              std::move(animator));
-
-            ecsManager->addPhysicsComponent(numEntities, physicsComp);
             numEntities++;
+
+            std::cout << "Player initialized successfully with entity ID: " << entityId << std::endl;
         }
+
+//        void createEntity(glm::vec3 pos) {
+//            std::unique_ptr<ModelAnimation> ourModel = std::make_unique<ModelAnimation>(
+//                    "resources/objects/animation/vampire/dancing_vampire.dae");
+//            auto ourShader = std::make_unique<Shader>(
+//                    "../shader/vertex/anim_model.vs",
+//                    "../shader/fragment/anim_model.fs"
+//            );
+//
+//            std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>(
+//                    "resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
+//            std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(
+//                    std::move(danceAnimation));
+//
+//            auto characterTransform = Transform{};
+//            characterTransform.position = pos;
+//
+//            // Extract collision data before moving
+//            PhysicsComponent physicsComp(numEntities);
+//
+//            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
+//
+//            // Now move the model
+//            gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel),
+//                                                                              std::move(ourShader), characterTransform,
+//                                                                              std::move(animator));
+//
+//            ecsManager->addPhysicsComponent(numEntities, physicsComp);
+//            numEntities++;
+//        }
 
     public:
 
@@ -164,16 +216,17 @@ namespace world {
             this->window = window;
 
             createVoxels();
-            initialisePlayer({30, 30, 30});
+            initialisePlayer({30, 100, 30});
 //            createEntity({20, 20, 20});
         }
 
         void update(double timeScale) {
 
             player->processInput(window, timeScale);
-            player->updateCamera();
 
             ecsManager->update();
+            player->updateCamera();
+
 
             physicsSystem->step(ecsManager->getPhysicsComponentsDense(), ecsManager->getPhysicsComponentsAmount(),
                                 gameObjects, grid, timeScale * FIXED_TIMESTEP);
@@ -184,7 +237,6 @@ namespace world {
             if (player) {
                 RenderContext renderContext = player->getRenderContext();
 
-                // Draw to screen.
                 for (int i = 0; i < numEntities; i++) {
                     gameObjects[i]->draw(renderContext);
                 }
