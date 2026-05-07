@@ -32,6 +32,10 @@ void Player::updateCamera(){
     }
 }
 
+ glm::vec3 Player::getPosition()  {
+    return avatar->getTransform()->position;
+}
+
 void Player::processInput(GLFWwindow* window, double timeScale)
 {
 
@@ -65,7 +69,7 @@ void Player::processInput(GLFWwindow* window, double timeScale)
                 RaycastResult result = raycast(100);
 
                 if (result.hit) {
-                    grid->setVoxel(result.voxelPos.x, result.voxelPos.y, result.voxelPos.z, VoxelType::AIR);
+                    grid->SetVoxel(result.voxelPos.x, result.voxelPos.y, result.voxelPos.z, VoxelType::AIR);
                     actionTimer = ACTION_COOLDOWN;
                 }
             }
@@ -121,7 +125,7 @@ void Player::handleRightClick() {
         // Ensure we don't place a block inside our own head
         glm::ivec3 playerPos = glm::floor(camera->getPosition());
         if (placePos != playerPos) {
-            grid->setVoxel(placePos.x, placePos.y, placePos.z, VoxelType::DIRT);
+            grid->SetVoxel(placePos.x, placePos.y, placePos.z, VoxelType::DIRT);
         }
     }
 }
@@ -192,7 +196,7 @@ RaycastResult Player::raycast(float maxDistance) {
 
     while (traveled < maxDistance) {
         // Check if current voxelPos is solid in your Grid
-        if (grid->isSolid(voxelPos.x, voxelPos.y, voxelPos.z)) {
+        if (grid->IsSolid(voxelPos.x, voxelPos.y, voxelPos.z)) {
             return {true, voxelPos, lastNormal};
         }
 

@@ -61,6 +61,10 @@ namespace player {
         void setAvatar( scene::components::CharacterControllerComponent* newAvatar);
 
         scene::components::CharacterControllerComponent * getAvatar();
+
+        const glm::vec3 &getGetPosition() const;
+
+        glm::vec3 getPosition();
     };
 }
 

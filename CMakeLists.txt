@@ -38,11 +38,8 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/RenderContext.h
         include/scene/geometry/Transform.h
         include/voxel/VoxelType.h
-        src/voxel/Chunk.cpp
         include/voxel/Chunk.h
-        src/voxel/Grid.cpp
         include/voxel/Grid.h
-        src/voxel/VoxelQuery.cpp
         include/voxel/VoxelQuery.h
         src/rendering/VoxelRenderer.cpp
         include/rendering/VoxelRenderer.h
@@ -57,7 +54,6 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/scene/objects/AnimationModelObject.h
         src/physics/PhysicsSystem.cpp
         include/physics/PhysicsSystem.h
-        include/world/World.cpp
         include/world/World.h
         src/physics/PhysicsSystem.cpp
         include/character/CharacterController.cpp
@@ -68,6 +64,24 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/scene/components/fsm/AnimationState.h
         include/scene/components/fsm/AnimationFSM.h
         include/animation/AnimationAssetLibrary.h
+        external/FastNoiseLite/FastNoiseLite.h
+        include/VoxelLib/Entity/Character/Animator.h
+        include/VoxelLib/Entity/Components/CharacterControllerComponent.h
+        include/VoxelLib/Entity/Components/PlayerControllerComponent.h
+        include/VoxelLib/Entity/FSM/StateMachine.h
+        include/VoxelLib/Mesh/MeshTypes.h
+        include/VoxelLib/Entity/FSM/Transition.h
+        include/VoxelLib/Entity/FSM/State.h
+        include/VoxelLib/Entity/Components/AI/AICharacterControllerComponent.h
+        include/VoxelLib/Mesh/VoxelMesh.h
+        include/VoxelLib/Partitoning/VoronoiDiagram.h
+        include/VoxelLib/Sampling/PoissonDS.h
+        include/VoxelLib/Terrain.h
+        include/VoxelLib/VoxelGrid.h
+        include/world/ProceduralTerrainGenerator.h
+        include/world/ProceduralTerrainGenerator.h
+        include/world/ProceduralTerrainGenerator.h
+        include/world/ProceduralTerrainGenerator.h
 )
 
 add_custom_target(ForceCopyResources

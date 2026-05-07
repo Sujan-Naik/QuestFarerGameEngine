@@ -4,6 +4,6 @@
 
 #include <cstdint>
 
-enum class VoxelType : uint8_t { AIR = 0, STONE = 1, DIRT = 2 };
+enum class VoxelType : uint8_t { AIR = 0, STONE = 1, DIRT = 2, GRASS = 3 };
 
 #endif //QUESTFARERGAMEENGINE_VOXELTYPE_H

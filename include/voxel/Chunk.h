@@ -1,43 +1,56 @@
-// Chunk.h
 #ifndef QUESTFARERGAMEENGINE_CHUNK_H
 #define QUESTFARERGAMEENGINE_CHUNK_H
 
-#include <unordered_map>
 #include <memory>
-#include "glm/fwd.hpp"
-#include "VoxelType.h"
-#include "../globals.h"
+#include <vector>
+#include <algorithm>
+#include "../../include/globals.h"
 
 namespace voxel {
-    class Chunk {
+    // Explicitly use uint8_t to save 3 bytes per voxel vs default int-enum
+    enum class VoxelType : uint8_t { AIR = 0, GRASS, DIRT, STONE };
 
+    class Chunk {
     private:
+        std::unique_ptr<VoxelType[]> voxels;
+        bool dirty;
 
     public:
-        VoxelType voxels[X_CHUNK_SIZE][Y_CHUNK_SIZE][Z_CHUNK_SIZE]{};
-        bool dirty = true;
+        Chunk() : dirty(true) {
+            size_t totalSize = X_CHUNK_SIZE * Y_CHUNK_SIZE * Z_CHUNK_SIZE;
+            voxels = std::make_unique<VoxelType[]>(totalSize);
+            // Default to AIR
+            std::fill(voxels.get(), voxels.get() + totalSize, VoxelType::AIR);
+        }
 
-        Chunk();
+        // Y-axis as most significant bit is better for vertical column access
+        // and standard greedy meshing iterations.
+        inline int GetIndex(int x, int y, int z) const {
+            return (y * X_CHUNK_SIZE * Z_CHUNK_SIZE) + (z * X_CHUNK_SIZE) + x;
+        }
 
-        // Set a voxel and mark chunk dirty
-        void setVoxel(int x, int y, int z, VoxelType type);
+        void SetVoxel(int x, int y, int z, VoxelType type) {
+            // Safety check for bounds
+            if (x & ~15 || y < 0 || y >= Y_CHUNK_SIZE || z & ~15) return;
 
-        // Get a voxel, returns AIR if out of bounds
-        VoxelType getVoxel(int x, int y, int z) const;
+            int idx = GetIndex(x, y, z);
+            if (voxels[idx] != type) {
+                voxels[idx] = type;
+                dirty = true;
+            }
+        }
 
+        VoxelType GetVoxel(int x, int y, int z) const {
+            if (x & ~15 || y < 0 || y >= Y_CHUNK_SIZE || z & ~15) return VoxelType::AIR;
+            return voxels[GetIndex(x, y, z)];
+        }
 
-        // Check if voxel is solid (not air)
-        bool isSolid(int x, int y, int z) const;
+        bool isDirty() const { return dirty; }
+        void clearDirty() { dirty = false; }
+        void markDirty() { dirty = true; }
 
-        // Mark chunk as needing rebuild
-        void markDirty();
-
-        // Check if chunk needs rebuild
-        bool isDirty() const;
-
-        // Clear dirty flag (call after mesh rebuild)
-        void clearDirty();
-
+        // Raw access for the renderer's greedy mesher
+        VoxelType* getData() { return voxels.get(); }
     };
 }
-#endif //QUESTFARERGAMEENGINE_CHUNK_H
+#endif

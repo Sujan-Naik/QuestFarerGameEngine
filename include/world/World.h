@@ -1,7 +1,6 @@
 #ifndef QUESTFARERGAMEENGINE_WORLD_H
 #define QUESTFARERGAMEENGINE_WORLD_H
 
-
 #include "../scene/objects/GameObject.h"
 #include "../voxel/Grid.h"
 #include "../physics/PhysicsSystem.h"
@@ -14,237 +13,197 @@
 #include "../scene/objects/AnimationModelObject.h"
 #include "../scene/components/ECSManager.h"
 #include "../animation/AnimationAssetLibrary.h"
+#include "ProceduralTerrainGenerator.h"
+#include <set>
 
 using namespace logger;
 using namespace player;
 using namespace physics;
 using namespace scene::components;
 
-
 namespace world {
     class World {
-
     private:
-
-        std::shared_ptr<Grid> grid = std::make_shared<Grid>();
+        std::shared_ptr<voxel::Grid> grid = std::make_shared<voxel::Grid>();
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
         std::shared_ptr<Player> player;
         std::unique_ptr<LightingRenderer> lighting;
-
-
-
         std::shared_ptr<Logger> logger = std::make_shared<Logger>("world_log.txt");
 
         GLFWwindow *window;
-
         std::unique_ptr<GameObject> gameObjects[MAX_ENTITIES];
         int numEntities = 0;
 
         std::shared_ptr<ECSManager> ecsManager;
+        std::shared_ptr<ProceduralTerrainGenerator> terrainGenerator;
+
+        struct ChunkPos {
+            int x, z;
+            bool operator<(const ChunkPos& other) const {
+                if (x != other.x) return x < other.x;
+                return z < other.z;
+            }
+        };
+
+        std::set<ChunkPos> activeChunks;
+        rendering::VoxelRenderer* voxelRendererPtr = nullptr;
+        const int RENDER_DISTANCE = 8;
+        const int UNLOAD_MARGIN = 2;
 
         void createVoxels() {
             auto voxelShader = std::make_unique<Shader>(
                     "../shader/vertex/voxel-shader.vs",
                     "../shader/fragment/voxel-shader.fs"
             );
-            voxelShader->use();
-//    voxelShader->setInt("texture_diffuse1", 0);
-//
-//    unsigned int voxelTexture;
-//    createTexture(voxelTexture, "resources/images/voxel_atlas.png");
+            auto vRenderer = std::make_unique<rendering::VoxelRenderer>(logger, std::move(voxelShader), grid);
+            vRenderer->loadTextureAtlas("resources/textures/terrain_atlas.png");
+            voxelRendererPtr = vRenderer.get();
 
-
-            auto voxelRenderer = std::make_unique<VoxelRenderer>(logger, std::move(voxelShader), grid);
-            voxelRenderer->setup();
-
-            gameObjects[numEntities] = std::make_unique<CustomMeshObject>(numEntities, std::move(voxelRenderer),
-                                                                          Transform{});
-
+            gameObjects[numEntities] = std::make_unique<CustomMeshObject>(
+                    numEntities,
+                    std::move(vRenderer),
+                    Transform{}
+            );
             numEntities++;
         }
 
+        void updateTerrainStreaming() {
+            if (!player) return;
 
+            glm::vec3 pPos = player->getPosition();
+            int pChunkX = static_cast<int>(pPos.x) >> 4;
+            int pChunkZ = static_cast<int>(pPos.z) >> 4;
 
-
-        void initialisePlayer(glm::vec3 pos) {
-            // 1. Load the Asset Container (The "Mushed" .glb)
-            // This loads the Mesh, Bones, and all Animation Clips in one pass.
-            animation::AnimationAssetLibrary playerAssets;
-//            playerAssets.loadFromGLB("resources/objects/UAL1_Standard.glb");
-//            playerAssets.loadFromGLB("resources/objects/UAL2_Standard.glb");
-
-
-//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM_Model.fbx", "Model");
-//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Idle01.fbx", "Idle");
-//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Run01_Forward [RM].fbx", "Run");
-
-
-//            playerAssets.loadFromFBX("resources/objects/humanoid/HumanM@Walk01_Forward [RM].fbx", "Walk");
-
-
-            playerAssets.loadFromFBX("resources/objects/humanoid/character.fbx");
-
-            // Safety check: if the model didn't load, the rest will crash.
-            if (!playerAssets.model) {
-                std::cerr << "ERROR: Failed to load player assets from GLB!" << std::endl;
-                return;
+            // 1. Gather all chunks within range that aren't loaded yet
+            std::vector<ChunkPos> targets;
+            for (int x = -RENDER_DISTANCE; x <= RENDER_DISTANCE; ++x) {
+                for (int z = -RENDER_DISTANCE; z <= RENDER_DISTANCE; ++z) {
+                    int tx = pChunkX + x;
+                    int tz = pChunkZ + z;
+                    if (activeChunks.find({tx, tz}) == activeChunks.end()) {
+                        targets.push_back({tx, tz});
+                    }
+                }
             }
 
-            // 2. Setup Shader
+            // 2. Sort targets by distance to player (Closest First)
+            std::sort(targets.begin(), targets.end(), [&](const ChunkPos& a, const ChunkPos& b) {
+                int distA = std::abs(a.x - pChunkX) + std::abs(a.z - pChunkZ);
+                int distB = std::abs(b.x - pChunkX) + std::abs(b.z - pChunkZ);
+                return distA < distB;
+            });
+
+            // 3. Process a limited number of chunks per frame (prevents lag spikes)
+            int chunksCreated = 0;
+            const int MAX_GEN_PER_FRAME = 2;
+
+            for (const auto& pos : targets) {
+                if (chunksCreated >= MAX_GEN_PER_FRAME) break;
+
+                terrainGenerator->generateChunk(grid, pos.x, pos.z);
+                activeChunks.insert(pos);
+                chunksCreated++;
+            }
+
+            // 4. Unload (same as before)
+            int unloadDist = RENDER_DISTANCE + UNLOAD_MARGIN;
+            for (auto it = activeChunks.begin(); it != activeChunks.end(); ) {
+                int dx = std::abs(it->x - pChunkX);
+                int dz = std::abs(it->z - pChunkZ);
+                if (dx > unloadDist || dz > unloadDist) {
+                    grid->chunks.erase({it->x, it->z});
+                    if (voxelRendererPtr) voxelRendererPtr->unloadChunkMesh(it->x, it->z);
+                    it = activeChunks.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+        }
+
+        void initialisePlayer(glm::vec3 pos) {
+            animation::AnimationAssetLibrary playerAssets;
+            playerAssets.loadFromFBX("resources/objects/humanoid/character.fbx");
+            if (!playerAssets.model) return;
+
             auto ourShader = std::make_unique<Shader>(
                     "../shader/vertex/anim_model.vs",
                     "../shader/fragment/anim_model.fs"
             );
 
-            // 3. Setup World Transform
-            // Use the model from the library to calculate initial bounds/transform
             auto characterTransform = Transform{playerAssets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
-            characterTransform.scale = {0.1, 0.1, 0.1};
+            characterTransform.scale = {0.1f, 0.1f, 0.1f};
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
-
-            // 4. Setup Idle State
             auto idleState = std::make_shared<SimpleAnimationState>();
             idleState->animation = playerAssets.get("HumanM@Idle01");
             idleState->rootBoneNames = {"B-root"};
 
-// 5. Setup the Locomotion State
             auto locState = std::make_shared<LocomotionBlendState>();
             locState->walk = playerAssets.get("HumanM@Walk01_Forward [RM]");
             locState->run = playerAssets.get("HumanM@Run01_Forward [RM]");
             locState->rootBoneNames = {"B-root"};
 
-// Register both states
             sharedFSM->RegisterState("Idle", idleState);
             sharedFSM->RegisterState("Locomotion", locState);
-            sharedFSM->TransitionTo("Idle");  // Start in idle
+            sharedFSM->TransitionTo("Idle");
 
-
-            // 5. Create the Game Object
-            // We pass the model pointer directly from the library.
             gameObjects[entityId] = std::make_unique<AnimationModelObject>(
-                    entityId,
-                    playerAssets.model,
-                    std::move(ourShader),
-                    characterTransform,
-                    sharedFSM
+                    entityId, playerAssets.model, std::move(ourShader), characterTransform, sharedFSM
             );
 
-            // 6. Setup Character Controller Component
-            CharacterControllerComponent characterControllerComponent(
-                    entityId,
-                    &gameObjects[entityId]->transform,
-                    sharedFSM
-            );
+            CharacterControllerComponent cc(entityId, &gameObjects[entityId]->transform, sharedFSM);
+            cc.initialize(playerAssets.model);
+            cc.setLocomotionSpeed(0.0f);
+            ecsManager->addCharacterControllerComponent(entityId, cc);
 
-            // Initialize with the model to sync bone maps
-            characterControllerComponent.initialize(playerAssets.model);
-            characterControllerComponent.setLocomotionSpeed(0.0f); // Default to Idle
-
-            // Push to ECS
-            ecsManager->addCharacterControllerComponent(entityId, characterControllerComponent);
-
-            // 7. Setup Player Logic & Input
-            player = std::make_shared<Player>(
-                    grid,
-                    &ecsManager->getCharacterControllerComponentFromSparse(entityId)
-            );
-
-            // Link GLFW input to the player class
+            player = std::make_shared<Player>(grid, &ecsManager->getCharacterControllerComponentFromSparse(entityId));
             glfwSetWindowUserPointer(window, player.get());
 
-            // 8. Physics Setup
-            // Pull the raw mesh data from the GLB for the collision shapes
-            PhysicsComponent physicsComp(entityId);
-            physicsComp.addCollisionMeshesFromModel(
-                    playerAssets.model->getMeshVertices(),
-                    playerAssets.model->getMeshIndices()
-            );
-
-            ecsManager->addPhysicsComponent(entityId, physicsComp);
-
+            PhysicsComponent pc(entityId);
+            pc.addCollisionMeshesFromModel(playerAssets.model->getMeshVertices(), playerAssets.model->getMeshIndices());
+            ecsManager->addPhysicsComponent(entityId, pc);
             numEntities++;
-
-            std::cout << "Player initialized successfully with entity ID: " << entityId << std::endl;
         }
 
-//        void createEntity(glm::vec3 pos) {
-//            std::unique_ptr<ModelAnimation> ourModel = std::make_unique<ModelAnimation>(
-//                    "resources/objects/animation/vampire/dancing_vampire.dae");
-//            auto ourShader = std::make_unique<Shader>(
-//                    "../shader/vertex/anim_model.vs",
-//                    "../shader/fragment/anim_model.fs"
-//            );
-//
-//            std::unique_ptr<animation::Animation> danceAnimation = std::make_unique<animation::Animation>(
-//                    "resources/objects/animation/vampire/dancing_vampire.dae", ourModel.get());
-//            std::unique_ptr<animation::Animator> animator = std::make_unique<animation::Animator>(
-//                    std::move(danceAnimation));
-//
-//            auto characterTransform = Transform{};
-//            characterTransform.position = pos;
-//
-//            // Extract collision data before moving
-//            PhysicsComponent physicsComp(numEntities);
-//
-//            physicsComp.addCollisionMeshesFromModel(ourModel->getMeshVertices(), ourModel->getMeshIndices());
-//
-//            // Now move the model
-//            gameObjects[numEntities] = std::make_unique<AnimationModelObject>(numEntities, std::move(ourModel),
-//                                                                              std::move(ourShader), characterTransform,
-//                                                                              std::move(animator));
-//
-//            ecsManager->addPhysicsComponent(numEntities, physicsComp);
-//            numEntities++;
-//        }
-
     public:
-
         World() {
             grid = std::make_shared<Grid>();
             ecsManager = std::make_shared<ECSManager>();
+            terrainGenerator = std::make_shared<ProceduralTerrainGenerator>();
         }
 
-        std::shared_ptr<Player> getPlayer() {
-            return player;
-        }
-
+        std::shared_ptr<Player> getPlayer() { return player; }
 
         void initialise(GLFWwindow *window) {
             this->window = window;
-
-            createVoxels();
             initialisePlayer({30, 100, 30});
-//            createEntity({20, 20, 20});
+            createVoxels();
+            updateTerrainStreaming();
         }
 
         void update(double timeScale) {
-
             player->processInput(window, timeScale);
-
             ecsManager->update();
             player->updateCamera();
-
-
-            physicsSystem->step(ecsManager->getPhysicsComponentsDense(), ecsManager->getPhysicsComponentsAmount(),
-                                gameObjects, grid, timeScale * FIXED_TIMESTEP);
+            updateTerrainStreaming();
+            physicsSystem->step(
+                    ecsManager->getPhysicsComponentsDense(),
+                    ecsManager->getPhysicsComponentsAmount(),
+                    gameObjects, grid, timeScale * FIXED_TIMESTEP
+            );
         }
 
         void render(double timeScale) {
-
             if (player) {
-                RenderContext renderContext = player->getRenderContext();
-
+                RenderContext ctx = player->getRenderContext();
                 for (int i = 0; i < numEntities; i++) {
-                    gameObjects[i]->draw(renderContext);
+                    gameObjects[i]->draw(ctx);
                 }
             }
         }
-
-
     };
 }
 
-#endif //QUESTFARERGAMEENGINE_WORLD_H
+#endif

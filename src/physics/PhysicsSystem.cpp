@@ -60,7 +60,7 @@ bool PhysicsSystem::isColliding(const glm::vec3& pos, const glm::vec3& halfExten
     for (int x = minX; x <= maxX; ++x) {
         for (int y = minY; y <= maxY; ++y) {
             for (int z = minZ; z <= maxZ; ++z) {
-                if (grid.isSolid(x, y, z)) return true;
+                if (grid.IsSolid(x, y, z)) return true;
             }
         }
     }
