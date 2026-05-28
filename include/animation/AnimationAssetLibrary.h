@@ -94,6 +94,7 @@ namespace animation {
 
             if (!model) {
                 model = newSource;
+                model->InitializeFootBones();
             }
 
             sourceFiles.push_back(newSource);

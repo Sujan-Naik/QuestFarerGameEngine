@@ -35,10 +35,11 @@ struct AnimationModelObject : GameObject {
         }
 
         if (animationFSM) {
-            auto output = animationFSM->GetOutput();
+            // Fetch the bone matrices (which already contain the IK adjustments applied in PhysicsSystem)
+            auto bonesToRender = model->GetAdjustedBoneMatrices();
 
-            for (int i = 0; i < output.finalBoneMatrices.size(); ++i) {
-                shader->setMat4("finalBonesMatrices[" + std::to_string(i) + "]", output.finalBoneMatrices[i]);
+            for (int i = 0; i < bonesToRender.size(); ++i) {
+                shader->setMat4("finalBonesMatrices[" + std::to_string(i) + "]", bonesToRender[i]);
             }
         }
 

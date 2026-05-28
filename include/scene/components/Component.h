@@ -1,12 +1,13 @@
 #ifndef QUESTFARERGAMEENGINE_COMPONENT_H
 #define QUESTFARERGAMEENGINE_COMPONENT_H
 
+#include <memory>
 #include "../objects/GameObject.h"
+
 
 namespace scene::components {
 
-    class ECSManager; // Forward declaration instead of include
-
+    class ECSManager;
 
     class Component {
     protected:

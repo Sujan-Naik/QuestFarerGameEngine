@@ -82,6 +82,10 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/world/ProceduralTerrainGenerator.h
         include/world/ProceduralTerrainGenerator.h
         include/world/ProceduralTerrainGenerator.h
+        src/scene/components/AIComponent.cpp
+        src/scene/components/CharacterControllerComponent.cpp
+        src/scene/components/PhysicsComponent.cpp
+        src/scene/ECSManager.cpp
 )
 
 add_custom_target(ForceCopyResources

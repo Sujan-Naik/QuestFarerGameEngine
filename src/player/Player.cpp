@@ -26,8 +26,8 @@ void Player::updateCamera(){
         glm::vec3 offset =(avatar->getTransform()->getBack() * glm::vec3(2,2,2) +  avatar->getTransform()->getUp() * glm::vec3(0,0.1,0) ) *
 
                           avatar->getTransform()->getSize().x ;
-
-        camera->setPosition( avatar->getTransform()->getTop() + offset);
+        glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->getTransform()->getTop() + offset, 0.2);
+        camera->setPosition( newCameraPosition);
 
     }
 }

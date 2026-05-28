@@ -140,6 +140,34 @@ build CMakeFiles/QuestFarerGameEngine.dir/include/character/CharacterController.
   OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
   OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/include/character
 
+build CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/AIComponent.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/scene/components/AIComponent.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/AIComponent.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/CharacterControllerComponent.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/scene/components/CharacterControllerComponent.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/CharacterControllerComponent.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/PhysicsComponent.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/scene/components/PhysicsComponent.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/PhysicsComponent.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/scene/components
+
+build CMakeFiles/QuestFarerGameEngine.dir/src/scene/ECSManager.cpp.o: CXX_COMPILER__QuestFarerGameEngine_unscanned_Debug /home/sujan/CLionProjects/QuestFarerGameEngine/src/scene/ECSManager.cpp || cmake_object_order_depends_target_QuestFarerGameEngine
+  DEP_FILE = CMakeFiles/QuestFarerGameEngine.dir/src/scene/ECSManager.cpp.o.d
+  FLAGS = -g -std=gnu++23 -fdiagnostics-color=always
+  INCLUDES = -I/home/sujan/CLionProjects/QuestFarerGameEngine/external
+  OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir
+  OBJECT_FILE_DIR = CMakeFiles/QuestFarerGameEngine.dir/src/scene
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target QuestFarerGameEngine
@@ -148,7 +176,7 @@ build CMakeFiles/QuestFarerGameEngine.dir/include/character/CharacterController.
 #############################################
 # Link the executable QuestFarerGameEngine
 
-build QuestFarerGameEngine: CXX_EXECUTABLE_LINKER__QuestFarerGameEngine_Debug CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/glad/glad.c.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/Shader.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/stb/stb_image.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/utils/Utils.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/LightingRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/MeshRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/player/Player.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/physics/PhysicsSystem.cpp.o CMakeFiles/QuestFarerGameEngine.dir/include/character/CharacterController.cpp.o | /usr/local/lib/libglfw.so.3.4 || ForceCopyResources
+build QuestFarerGameEngine: CXX_EXECUTABLE_LINKER__QuestFarerGameEngine_Debug CMakeFiles/QuestFarerGameEngine.dir/src/main.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/glad/glad.c.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/Shader.cpp.o CMakeFiles/QuestFarerGameEngine.dir/external/stb/stb_image.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/Camera.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/utils/Utils.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/LightingRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/MeshRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/TerrainMCRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/rendering/VoxelRenderer.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/player/Player.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/physics/PhysicsSystem.cpp.o CMakeFiles/QuestFarerGameEngine.dir/include/character/CharacterController.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/AIComponent.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/CharacterControllerComponent.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/scene/components/PhysicsComponent.cpp.o CMakeFiles/QuestFarerGameEngine.dir/src/scene/ECSManager.cpp.o | /usr/local/lib/libglfw.so.3.4 || ForceCopyResources
   FLAGS = -g
   LINK_LIBRARIES = -Wl,-rpath,/usr/local/lib  -lassimp  /usr/local/lib/libglfw.so.3.4
   OBJECT_DIR = CMakeFiles/QuestFarerGameEngine.dir

@@ -2,6 +2,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "../../include/rendering/VoxelRenderer.h"
 #include <iostream>
+#include <array>
+#include <algorithm>
 
 using namespace rendering;
 using namespace rendering::mesh;
@@ -12,9 +14,6 @@ const float TILE_SIZE = 1.0f / 16.0f;
 VoxelRenderer::VoxelRenderer(std::shared_ptr<logger::Logger> logger, std::unique_ptr<Shader> shader,
                              std::shared_ptr<Grid> grid)
         : MeshRenderer(std::move(logger), std::move(shader)), grid(std::move(grid)) {
-    // Pre-reserve memory to prevent reallocations during "insane" loading
-    vertexBuffer.reserve(5000);
-    indexBuffer.reserve(7500);
 }
 
 void VoxelRenderer::unloadChunkMesh(int xChunk, int zChunk) {
@@ -81,24 +80,22 @@ void VoxelRenderer::appendQuad(
     }
 }
 
-void VoxelRenderer::greedyMeshChunk(int cx, int cz, std::vector<mesh::Vertex>& vertices, std::vector<unsigned int>& indices) {
-    auto it = grid->chunks.find({cx, cz});
-    if (it == grid->chunks.end()) return;
-
-    Chunk* chunk = it->second.get();
+void VoxelRenderer::greedyMeshSpecificChunk(voxel::Chunk* chunk, std::vector<mesh::Vertex>& vertices, std::vector<unsigned int>& indices) {
+    // Thread local buffers prevent massive reallocations
+    static thread_local std::vector<int> mask(16 * 256);
+    static thread_local std::vector<VoxelType> typeMask(16 * 256);
 
     for (int d = 0; d < 3; ++d) {
         int u = (d + 1) % 3, v = (d + 2) % 3;
         std::array<int, 3> x = {0, 0, 0}, q = {0, 0, 0};
-        std::vector<int> mask(16 * 256); // Optimized size for 16x256x16
-        std::vector<VoxelType> typeMask(16 * 256);
+
+        std::fill(mask.begin(), mask.end(), 0);
 
         q[d] = 1;
         for (x[d] = -1; x[d] < (d == 1 ? 256 : 16);) {
             int n = 0;
             for (x[v] = 0; x[v] < (v == 1 ? 256 : 16); ++x[v]) {
                 for (x[u] = 0; x[u] < (u == 1 ? 256 : 16); ++x[u]) {
-                    // Use internal bit-shifting for GetVoxel lookups
                     VoxelType a = chunk->GetVoxel(x[0], x[1], x[2]);
                     VoxelType b = chunk->GetVoxel(x[0] + q[0], x[1] + q[1], x[2] + q[2]);
 
@@ -156,46 +153,26 @@ void VoxelRenderer::greedyMeshChunk(int cx, int cz, std::vector<mesh::Vertex>& v
     }
 }
 
-void VoxelRenderer::rebuildChunkMesh(int cx, int cz) {
-    vertexBuffer.clear();
-    indexBuffer.clear();
-
-    greedyMeshChunk(cx, cz, vertexBuffer, indexBuffer);
-
-    if (vertexBuffer.empty()) {
-        chunkMeshes.erase({cx, cz});
-        return;
-    }
-
+void VoxelRenderer::uploadManualMesh(int cx, int cz, std::vector<mesh::Vertex>& vertices, std::vector<unsigned int>& indices) {
     mesh::Texture tex;
     tex.id = textureId;
     tex.type = "texture_diffuse";
 
-    // Efficiently replace or create the mesh
     chunkMeshes[{cx, cz}] = std::make_unique<mesh::Mesh>(
-            vertexBuffer, indexBuffer, std::vector<mesh::Texture>{tex}
+            vertices, indices, std::vector<mesh::Texture>{tex}
     );
-}
-
-void VoxelRenderer::updateDirtyChunks() {
-    int count = 0;
-    for (auto const& [pos, chunk] : grid->chunks) {
-        if (chunk->isDirty()) {
-            rebuildChunkMesh(pos.x, pos.y);
-            chunk->clearDirty();
-            if (++count > 4) break; // Limit rebuilds per frame to keep FPS smooth
-        }
-    }
 }
 
 void VoxelRenderer::setup() {
     for (auto const& [pos, chunk] : grid->chunks) {
-        rebuildChunkMesh(pos.x, pos.y);
+        std::vector<mesh::Vertex> v;
+        std::vector<unsigned int> i;
+        greedyMeshSpecificChunk(chunk.get(), v, i);
+        uploadManualMesh(pos.x, pos.y, v, i);
     }
 }
 
 void VoxelRenderer::draw(const RenderContext &ctx, glm::mat4 modelMatrix) {
-    updateDirtyChunks();
     shader->use();
     shader->setMat4("projection", ctx.projection);
     shader->setMat4("view", ctx.view);
@@ -204,9 +181,7 @@ void VoxelRenderer::draw(const RenderContext &ctx, glm::mat4 modelMatrix) {
     glBindTexture(GL_TEXTURE_2D, textureId);
 
     for (auto const& [pos, mesh] : chunkMeshes) {
-        // Only draw if within a reasonable distance (Basic Culling)
-        glm::mat4 chunkMatrix = glm::translate(modelMatrix,
-                                               glm::vec3(pos.x << 4, 0.0f, pos.y << 4)); // Shift instead of multiply
+        glm::mat4 chunkMatrix = glm::translate(modelMatrix, glm::vec3(pos.x << 4, 0.0f, pos.y << 4));
         shader->setMat4("model", chunkMatrix);
         mesh->Draw(*shader);
     }
