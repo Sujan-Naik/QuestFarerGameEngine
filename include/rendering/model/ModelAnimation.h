@@ -151,7 +151,6 @@ public:
         glm::mat4 foot;
     };
 
-
     static AdjustedLeg SolveIK(const glm::mat4& upperMatrix, const glm::mat4& lowerMatrix, const glm::mat4& footMatrix,
                                glm::vec3 targetPos, glm::vec3 poleVector, float upperLen, float lowerLen)
     {
@@ -196,6 +195,7 @@ public:
         glm::vec3 localHingeAxis = glm::normalize(glm::vec3(upperMatrix[0]));
 
         glm::vec3 poleOffset  = poleVector - upperPos;
+
         glm::vec3 poleBendDir = poleOffset - targetDir * glm::dot(poleOffset, targetDir);
 
         glm::vec3 bendDir;
@@ -222,6 +222,11 @@ public:
         glm::vec3 finalThighDir = glm::normalize(finalKneePos - upperPos);
         glm::quat upperSwing    = safeRotation(animThighDir, finalThighDir);
 
+        glm::vec3 upperTwistAxis = glm::normalize(glm::vec3(upperMatrix[1]));
+        glm::vec3 upperProj = glm::dot(glm::vec3(upperSwing.x, upperSwing.y, upperSwing.z), upperTwistAxis) * upperTwistAxis;
+        glm::quat upperTwist = glm::normalize(glm::quat(upperSwing.w, upperProj.x, upperProj.y, upperProj.z));
+        upperSwing = upperSwing * glm::inverse(upperTwist);
+
         result.upper = glm::mat4_cast(upperSwing) * upperMatrix;
         result.upper[3] = glm::vec4(upperPos, 1.0f);
 
@@ -229,6 +234,11 @@ public:
         glm::vec3 inheritedShinDir = upperSwing * glm::normalize(animFootPos - animKneePos);
         glm::vec3 finalShinDir     = glm::normalize(targetPos - finalKneePos);
         glm::quat lowerSwing       = safeRotation(inheritedShinDir, finalShinDir);
+
+        glm::vec3 lowerTwistAxis = glm::normalize(glm::vec3(inheritedLowerMatrix[1]));
+        glm::vec3 lowerProj = glm::dot(glm::vec3(lowerSwing.x, lowerSwing.y, lowerSwing.z), lowerTwistAxis) * lowerTwistAxis;
+        glm::quat lowerTwist = glm::normalize(glm::quat(lowerSwing.w, lowerProj.x, lowerProj.y, lowerProj.z));
+        lowerSwing = lowerSwing * glm::inverse(lowerTwist);
 
         result.lower = glm::mat4_cast(lowerSwing) * inheritedLowerMatrix;
         result.lower[3] = glm::vec4(finalKneePos, 1.0f);
@@ -240,139 +250,122 @@ public:
         return result;
     }
 
+
+
     std::vector<glm::mat4> AdjustBonesForTerrainCollisionIK(
             const std::vector<glm::mat4>& originalBoneMatrices,
             const glm::mat4& characterWorldMatrix,
             float maxStepHeight,
-            std::function<float(glm::vec3)> getTerrainHeight) const
+            const std::function<float(glm::vec3)>& getTerrainHeight) const
     {
-        static uint32_t diagnosticLogCounter = 0;
-        bool shouldLog = (diagnosticLogCounter++ % 60 == 0);
-
-        if (originalBoneMatrices.empty() || !footBonesInitialized) {
-            return originalBoneMatrices;
+        auto cleanGlobalMatrices = originalBoneMatrices;
+        for (const auto& [name, boneInfo] : m_BoneInfoMap) {
+            cleanGlobalMatrices[boneInfo.id] = originalBoneMatrices[boneInfo.id] * glm::inverse(boneInfo.offset);
         }
 
-        const std::vector<glm::mat4> inputLocalBones = originalBoneMatrices;
-        auto adjustedMatrices = originalBoneMatrices;
+        auto adjustedGlobals = cleanGlobalMatrices;
+        glm::mat4 inverseCharacterMatrix = glm::inverse(characterWorldMatrix);
 
-        struct LegBones { std::string thigh, shin, foot; int thighIdx, shinIdx, footIdx; };
+        struct LegBones {
+            std::string thigh, shin, foot, toe;
+            int thighIdx, shinIdx, footIdx, toeIdx;
+        };
+
         std::vector<LegBones> legs = {
-                {"B-thigh.L", "B-shin.L", "B-foot.L", -1, -1, -1},
-                {"B-thigh.R", "B-shin.R", "B-foot.R", -1, -1, -1}
+                {"B-thigh.L", "B-shin.L", "B-foot.L", "B-toe.L", -1, -1, -1, -1},
+                {"B-thigh.R", "B-shin.R", "B-foot.R", "B-toe.R", -1, -1, -1, -1}
         };
 
-        float maxDropNeededLocal = 0.0f;
-        std::vector<glm::vec3> footLocalPositions(legs.size());
-        std::vector<float> targetHeightsLocal(legs.size());
-        std::vector<float> individualHipOffsetsY(legs.size(), 0.0f);
-
-        auto fixMatrixBasis = [](glm::mat4& m) {
-            glm::vec3 x = glm::normalize(glm::vec3(m[0]));
-            glm::vec3 y = glm::normalize(glm::vec3(m[1]));
-            glm::vec3 z = glm::normalize(glm::cross(x, y));
-            x = glm::cross(y, z);
-            m[0] = glm::vec4(x, 0.0f);
-            m[1] = glm::vec4(y, 0.0f);
-            m[2] = glm::vec4(z, 0.0f);
-        };
+        std::vector<glm::vec3> footWorldPositions(legs.size());
+        std::vector<float> worldDropDistances(legs.size());
+        std::vector<bool> needsGrounding(legs.size(), false);
+        float maxDropNeededWorld = 0.0f;
 
         for (size_t i = 0; i < legs.size(); ++i) {
             legs[i].thighIdx = GetBoneIndex(legs[i].thigh);
             legs[i].shinIdx  = GetBoneIndex(legs[i].shin);
             legs[i].footIdx  = GetBoneIndex(legs[i].foot);
+            legs[i].toeIdx   = GetBoneIndex(legs[i].toe);
 
-            if (legs[i].thighIdx < 0 || legs[i].shinIdx < 0 || legs[i].footIdx < 0) {
-                return originalBoneMatrices;
-            }
+            glm::mat4 modelFootMat = cleanGlobalMatrices[legs[i].footIdx];
+            glm::vec3 footWorldPos = glm::vec3(characterWorldMatrix * modelFootMat[3]);
+            float worldTerrainHeight = getTerrainHeight(footWorldPos);
 
-            glm::mat4 localThighMat = inputLocalBones[legs[i].thighIdx];
-            glm::mat4 localShinMat  = localThighMat * inputLocalBones[legs[i].shinIdx];
-            glm::mat4 localFootMat  = localShinMat  * inputLocalBones[legs[i].footIdx];
+            footWorldPositions[i] = footWorldPos;
 
-            glm::vec3 footWorldPos = glm::vec3(characterWorldMatrix * localFootMat[3]);
-            float worldTerrainHeight = getTerrainHeight(footWorldPos) + 0.05f;
-
-            float worldDropDistance = footWorldPos.y - worldTerrainHeight;
-            footLocalPositions[i] = glm::vec3(localFootMat[3]);
-
-            targetHeightsLocal[i] = footLocalPositions[i].y - worldDropDistance;
-            individualHipOffsetsY[i] = localThighMat[3].y;
-
-            if (worldDropDistance > maxDropNeededLocal) {
-                maxDropNeededLocal = worldDropDistance;
+            if (footWorldPos.y < worldTerrainHeight + maxStepHeight) {
+                float diff = worldTerrainHeight - footWorldPos.y;
+                if (diff > 0.0f) {
+                    worldDropDistances[i] = diff;
+                    needsGrounding[i] = true;
+                    if (diff > maxDropNeededWorld) {
+                        maxDropNeededWorld = diff;
+                    }
+                }
             }
         }
 
-        float dynamicPelvisDropLocal = glm::clamp(maxDropNeededLocal, 0.0f, maxStepHeight);
+        float dynamicPelvisDropWorld = glm::clamp(maxDropNeededWorld, 0.0f, maxStepHeight);
 
-        // Calculate structural variance between left and right animation hips
-        float structuralHipDeltaY = individualHipOffsetsY[0] - individualHipOffsetsY[1];
+        int pelvisIdx = GetBoneIndex("B-root");
+        if (pelvisIdx != -1 && dynamicPelvisDropWorld > 0.001f) {
+            glm::vec3 pelvisWorldPos = glm::vec3(characterWorldMatrix * cleanGlobalMatrices[pelvisIdx][3]);
+            pelvisWorldPos.y -= dynamicPelvisDropWorld;
+            adjustedGlobals[pelvisIdx][3] = inverseCharacterMatrix * glm::vec4(pelvisWorldPos, 1.0f);
+        }
+
+        glm::vec3 modelDropVec = glm::vec3(inverseCharacterMatrix * glm::vec4(0.0f, dynamicPelvisDropWorld, 0.0f, 0.0f));
 
         for (size_t i = 0; i < legs.size(); ++i) {
             const auto& leg = legs[i];
 
-            glm::mat4 origThigh = inputLocalBones[leg.thighIdx];
-            glm::mat4 origShin  = origThigh * inputLocalBones[leg.shinIdx];
-            glm::mat4 origFoot  = origShin  * inputLocalBones[leg.footIdx];
+            glm::mat4 modelThighMat = cleanGlobalMatrices[leg.thighIdx];
+            glm::mat4 modelShinMat  = cleanGlobalMatrices[leg.shinIdx];
+            glm::mat4 modelFootMat  = cleanGlobalMatrices[leg.footIdx];
 
-            glm::vec3 localShinOffsetFromThigh = glm::vec3(inputLocalBones[leg.shinIdx][3]);
-            glm::vec3 localFootOffsetFromShin  = glm::vec3(inputLocalBones[leg.footIdx][3]);
+            modelThighMat[3] -= glm::vec4(modelDropVec, 0.0f);
+            modelShinMat[3]  -= glm::vec4(modelDropVec, 0.0f);
+            modelFootMat[3]  -= glm::vec4(modelDropVec, 0.0f);
 
-            glm::mat4 upperLocalMat = origThigh;
-            glm::mat4 lowerLocalMat = origShin;
-            glm::mat4 footLocalMat  = origFoot;
-
-            fixMatrixBasis(upperLocalMat);
-            fixMatrixBasis(lowerLocalMat);
-            fixMatrixBasis(footLocalMat);
-
-            glm::vec3 stableHipJointLocalRoot = glm::vec3(inputLocalBones[leg.thighIdx][3]);
-
-            upperLocalMat[3].y -= dynamicPelvisDropLocal;
-            lowerLocalMat[3].y -= dynamicPelvisDropLocal;
-            footLocalMat[3].y  -= dynamicPelvisDropLocal;
-
-            float upperLen = glm::distance(glm::vec3(lowerLocalMat[3]), glm::vec3(upperLocalMat[3]));
-            float lowerLen = glm::distance(glm::vec3(footLocalMat[3]), glm::vec3(lowerLocalMat[3]));
-
-            if (upperLen < 0.001f || lowerLen < 0.001f) continue;
-
-            // Balance target heights dynamically using the computed structural variance factor
-            float asymmetryCompensation = (i == 0) ? (structuralHipDeltaY * 0.5f) : 0.0f;
-
-            glm::vec3 targetFootLocalPos = glm::vec3(
-                    footLocalPositions[i].x,
-                    targetHeightsLocal[i] + (dynamicPelvisDropLocal * 0.95f) + asymmetryCompensation,
-                    footLocalPositions[i].z
-            );
-
-            glm::vec3 stablePoleVectorLocal = glm::vec3(lowerLocalMat[3]);
-            stablePoleVectorLocal.z += 5.0f;
-
-            auto legResult = SolveIK(upperLocalMat, lowerLocalMat, footLocalMat,
-                                     targetFootLocalPos, stablePoleVectorLocal, upperLen, lowerLen);
-
-            adjustedMatrices[leg.thighIdx] = legResult.upper;
-            adjustedMatrices[leg.thighIdx][3] = glm::vec4(stableHipJointLocalRoot, 1.0f);
-
-            glm::mat4 localShinTransform = glm::inverse(legResult.upper) * legResult.lower;
-            localShinTransform[3] = glm::vec4(localShinOffsetFromThigh, 1.0f);
-            adjustedMatrices[leg.shinIdx] = localShinTransform;
-
-            glm::mat4 localFootTransform = glm::inverse(legResult.lower) * legResult.foot;
-            localFootTransform[3] = glm::vec4(localFootOffsetFromShin, 1.0f);
-            adjustedMatrices[leg.footIdx] = localFootTransform;
-
-            if (shouldLog) {
-                glm::vec3 finalThighPos = glm::vec3(adjustedMatrices[leg.thighIdx][3]);
-                std::cout << "  [Leg " << i << " (" << (i == 0 ? "Left" : "Right") << ")] "
-                          << "Original Hip Pos: (" << stableHipJointLocalRoot.x << ", " << stableHipJointLocalRoot.y << ", " << stableHipJointLocalRoot.z << ") | "
-                          << "Output Hip Pos: (" << finalThighPos.x << ", " << finalThighPos.y << ", " << finalThighPos.z << ")\n";
+            if (!needsGrounding[i] && dynamicPelvisDropWorld <= 0.001f) {
+                continue;
             }
+
+            float upperLen = glm::distance(glm::vec3(modelShinMat[3]), glm::vec3(modelThighMat[3]));
+            float lowerLen = glm::distance(glm::vec3(modelFootMat[3]), glm::vec3(modelShinMat[3]));
+
+            glm::vec3 targetFootWorldPos = footWorldPositions[i];
+            if (needsGrounding[i]) {
+                targetFootWorldPos.y = footWorldPositions[i].y + worldDropDistances[i];
+            } else {
+                targetFootWorldPos.y = footWorldPositions[i].y;
+            }
+
+            glm::vec3 targetFootModelPos = glm::vec3(inverseCharacterMatrix * glm::vec4(targetFootWorldPos, 1.0f));
+
+            glm::vec3 stablePoleVectorModel = glm::vec3(modelShinMat[3]);
+            stablePoleVectorModel.z -= 1.0f;
+
+            auto legResult = SolveIK(modelThighMat, modelShinMat, modelFootMat,
+                                     targetFootModelPos, stablePoleVectorModel, upperLen, lowerLen);
+
+            adjustedGlobals[leg.thighIdx] = legResult.upper;
+            adjustedGlobals[leg.shinIdx]  = legResult.lower;
+            adjustedGlobals[leg.footIdx]  = legResult.foot;
+
+            glm::mat4 modelToeMat = cleanGlobalMatrices[leg.toeIdx];
+            modelToeMat[3] -= glm::vec4(modelDropVec, 0.0f);
+
+            glm::mat4 localToeMat = glm::inverse(modelFootMat) * modelToeMat;
+            adjustedGlobals[leg.toeIdx] = legResult.foot * localToeMat;
         }
 
-        return adjustedMatrices;
+        auto finalSkinningMatrices = originalBoneMatrices;
+        for (const auto& [name, boneInfo] : m_BoneInfoMap) {
+            finalSkinningMatrices[boneInfo.id] = adjustedGlobals[boneInfo.id] * boneInfo.offset;
+        }
+
+        return finalSkinningMatrices;
     }
 
 

@@ -142,13 +142,23 @@ namespace physics {
         int x = static_cast<int>(std::floor(pos.x));
         int z = static_cast<int>(std::floor(pos.z));
 
+        // 1. Chunk Lookup
         auto it = grid->chunks.find({x >> 4, z >> 4});
         if (it == grid->chunks.end()) return 0.0f;
 
-        // Find highest non-air voxel at this XZ
-        for (int y = 255; y >= 0; --y) {
-            if (it->second->GetVoxel(x & 15, y, z & 15) != voxel::VoxelType::AIR) {
-                return static_cast<float>(y + 1);  // Top of voxel
+        auto& chunk = it->second;
+
+        // 2. Extract local coordinates (0-15)
+        int localX = x & 15;
+        int localZ = z & 15;
+
+        // 3. Scan down from the actual configured maximum chunk height
+        // Using Y_CHUNK_SIZE keeps it perfectly in sync with your engine's globals
+        for (int y = Y_CHUNK_SIZE - 1; y >= 0; --y) {
+            // Direct, fast index lookup bypassing redundant bounds checks
+            int idx = chunk->GetIndex(localX, y, localZ);
+            if (chunk->getData()[idx] != voxel::VoxelType::AIR) {
+                return static_cast<float>(y + 1); // Surface top
             }
         }
         return 0.0f;
@@ -214,7 +224,7 @@ namespace physics {
             auto adjustedBones = modelAnimation->AdjustBonesForTerrainCollisionIK(
                     modelAnimation->GetFinalBoneMatrices(),
                     proposedModelMatrix,
-                    3.0f,
+                    100.0f,
                     [grid](glm::vec3 footPos) {
                         return GetTerrainHeightAtXZ(grid, footPos);
                     }

@@ -32,7 +32,6 @@ namespace scene::components {
 
     void PhysicsComponent::update() {
         if (!model || hitboxes.empty()) return;
-        addVelocity(glm::vec3(0,0,1) * 0.1f);
 
         const auto& boneMatrices = model->GetFinalBoneMatrices();
         if (boneMatrices.empty()) return;
