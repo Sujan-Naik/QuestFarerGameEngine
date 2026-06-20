@@ -22,10 +22,9 @@ namespace scene::components {
         std::shared_ptr<ModelAnimation> skeleton;
         Transform* transform;
 
-        // Root motion tracking
-        glm::vec3 m_previousRootPos;
-        glm::vec3 m_lastFrameClipStart;
-        glm::vec3 m_lastFrameClipEnd;
+        float m_currentSpeedFactor;
+        glm::vec2 m_currentDirection;
+        float m_movementScale = 0.12f;
 
     public:
         explicit CharacterControllerComponent(int entityId, Transform* transformPtr, std::shared_ptr<AnimationFSM> animFSM);
@@ -35,7 +34,8 @@ namespace scene::components {
         Transform* getTransform() const;
 
         void initialize(std::shared_ptr<ModelAnimation> model);
-        void setLocomotionSpeed(float speed);
+        void setLocomotionInput(float forward, float strafe, bool isSprinting);
+        void triggerJump();
         float getSpeed();
 
         void update() override;
@@ -47,4 +47,4 @@ namespace scene::components {
     };
 }
 
-#endif //QUESTFARERGAMEENGINE_CHARACTERCONTROLLERCOMPONENT_H
+#endif

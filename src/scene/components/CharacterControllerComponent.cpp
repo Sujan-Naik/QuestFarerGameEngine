@@ -8,11 +8,11 @@ namespace scene::components {
 
     CharacterControllerComponent::CharacterControllerComponent(int entityId, Transform* transformPtr, std::shared_ptr<AnimationFSM> animFSM)
             : Component(entityId), transform(transformPtr), fsm(animFSM),
-              m_previousRootPos(0.0f), m_lastFrameClipStart(0.0f), m_lastFrameClipEnd(0.0f) {}
+              m_currentSpeedFactor(0.0f), m_currentDirection(0.0f) {}
 
     CharacterControllerComponent::CharacterControllerComponent()
             : Component(-1), transform(nullptr), fsm(std::make_shared<AnimationFSM>()),
-              m_previousRootPos(0.0f), m_lastFrameClipStart(0.0f), m_lastFrameClipEnd(0.0f) {}
+              m_currentSpeedFactor(0.0f), m_currentDirection(0.0f) {}
 
     std::shared_ptr<AnimationFSM> CharacterControllerComponent::GetFSM() {
         return fsm;
@@ -26,91 +26,64 @@ namespace scene::components {
         skeleton = model;
     }
 
-    void CharacterControllerComponent::setLocomotionSpeed(float speed) {
-        if (speed < 0.01f) {
+    void CharacterControllerComponent::setLocomotionInput(float forward, float strafe, bool isSprinting) {
+        m_currentSpeedFactor = glm::length(glm::vec2(strafe, forward));
+        m_currentDirection = glm::vec2(strafe, forward);
+
+        if (m_currentSpeedFactor < 0.01f) {
             fsm->TransitionTo("Idle");
         } else {
             fsm->TransitionTo("Locomotion");
+        }
 
-            auto state = fsm->GetCurrentState<LocomotionBlendState>();
-            if (state) {
-                state->SetSpeed(speed);
-            }
+        fsm->UpdateParameters(m_currentSpeedFactor, m_currentDirection);
+    }
+
+    void CharacterControllerComponent::triggerJump() {
+        PhysicsComponent* physics = ecsManager->getPhysicsComponent(entityId);
+        if (physics && physics->onGround) {
+            fsm->TransitionTo("Jump");
         }
     }
 
     float CharacterControllerComponent::getSpeed() {
-        if (auto simpleState = fsm->GetCurrentState<SimpleAnimationState>()) {
-            return 0;
-        } else if (auto locomotionState = fsm->GetCurrentState<LocomotionBlendState>()) {
-            return locomotionState->getSpeed();
-        }
+        return m_currentSpeedFactor;
     }
 
     void CharacterControllerComponent::update() {
+        fsm->UpdateParameters(m_currentSpeedFactor, m_currentDirection);
         fsm->Update(FIXED_TIMESTEP);
         updateRootMotion();
     }
 
     void CharacterControllerComponent::receive(int message) {
         switch (message) {
-            case 0: setLocomotionSpeed(0.0f);   break;
-            case 1: setLocomotionSpeed(0.5f);   break;
-            case 2: setLocomotionSpeed(1.0f);   break;
+            case 0: setLocomotionInput(0.0f, 0.0f, false); break;
+            case 1: setLocomotionInput(0.5f, 0.0f, false); break;
+            case 2: setLocomotionInput(1.0f, 0.0f, true);  break;
         }
     }
 
     void CharacterControllerComponent::updateRootMotion() {
         if (!fsm) return;
 
-        auto output = fsm->GetOutput();
-        glm::vec3 currentRootPos = output.m_rootBonePosition;
-        glm::vec3 currentClipStart = fsm->GetClipStartRootPos();
-        glm::vec3 currentClipEnd = fsm->GetClipEndRootPos();
+        auto currentState = fsm->GetCurrentState();
+        if (!currentState) return;
 
-        glm::vec3 deltaRootPos(0.0f);
-
-        if (fsm->WasAnimationSwitched()) {
-            m_previousRootPos = currentRootPos;
-        } else if (fsm->DidLoopThisFrame()) {
-            glm::vec3 distanceToEnd = m_lastFrameClipEnd - m_previousRootPos;
-
-            if (distanceToEnd.z < 0.0f) distanceToEnd.z = 0.0f;
-            if (distanceToEnd.x < 0.0f) distanceToEnd.x = 0.0f;
-
-            glm::vec3 distanceFromStart = currentRootPos - currentClipStart;
-
-            if (distanceFromStart.z < 0.0f) distanceFromStart.z = 0.0f;
-
-            deltaRootPos = distanceToEnd + distanceFromStart;
-
-//            std::cout << "--- LOOP LOG ---" << std::endl;
-//            std::cout << "DistToEnd: " << glm::to_string(distanceToEnd) << std::endl;
-//            std::cout << "DistFromStart: " << glm::to_string(distanceFromStart) << std::endl;
-//            std::cout << "Final Delta: " << glm::to_string(deltaRootPos) << std::endl;
-//            std::cout << "m_lastFrameClipEnd: " << glm::to_string(m_lastFrameClipEnd) << std::endl;
-//            std::cout << "m_previousRootPos: " << glm::to_string(m_previousRootPos) << std::endl;
-        } else {
-            deltaRootPos = currentRootPos - m_previousRootPos;
-        }
-
+        glm::vec3 deltaRootPos = currentState->GetRootDeltaThisFrame();
         applyRootMotion(deltaRootPos);
-
-        m_previousRootPos = currentRootPos;
-        m_lastFrameClipStart = currentClipStart;
-        m_lastFrameClipEnd = currentClipEnd;
     }
 
     void CharacterControllerComponent::applyRootMotion(glm::vec3 delta) {
-        glm::vec3 worldDelta = transform->getForward() * delta.z +
-                               transform->getRight()   * delta.x +
-                               transform->getUp()      * delta.y;
+        glm::vec3 worldDelta = (transform->getForward() * delta.z) +
+                               (transform->getRight() * delta.x) +
+                               (transform->getUp() * delta.y);
 
         PhysicsComponent* physics = ecsManager->getPhysicsComponent(entityId);
 
         skeleton->SetFinalBoneMatrices(fsm->GetOutput().finalBoneMatrices);
         if (physics) {
-            physics->addVelocity(worldDelta * 0.01f);
+            physics->addVelocity(worldDelta * m_movementScale);
         }
     }
 }

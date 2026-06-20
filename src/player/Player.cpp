@@ -1,20 +1,15 @@
 #include <utility>
 #include <iostream>
-
 #include "../../include/player/Player.h"
 
 using namespace player;
 
 Player::Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent * avatar)
-        : grid(std::move(gridPtr)), avatar(avatar) {
-
-}
+        : grid(std::move(gridPtr)), avatar(avatar) {}
 
 const rendering::RenderContext Player::getRenderContext() const {
     const glm::mat4 view       = camera->getViewMatrix();
     const glm::mat4 projection = camera->getProjectionMatrix(aspectRatio);
-
-
     return rendering::RenderContext{camera->getPosition(), projection, view};
 }
 
@@ -24,21 +19,18 @@ void Player::updateCamera(){
         avatar->getTransform()->rotation = yawRotation;
 
         glm::vec3 offset =(avatar->getTransform()->getBack() * glm::vec3(2,2,2) +  avatar->getTransform()->getUp() * glm::vec3(0,0.1,0) ) *
-
                           avatar->getTransform()->getSize().x ;
         glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->getTransform()->getTop() + offset, 0.2);
         camera->setPosition( newCameraPosition);
-
     }
 }
 
- glm::vec3 Player::getPosition()  {
+glm::vec3 Player::getPosition()  {
     return avatar->getTransform()->position;
 }
 
 void Player::processInput(GLFWwindow* window, double timeScale)
 {
-
     actionTimer -= FIXED_TIMESTEP * timeScale;
 
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && !cursorEnabled)
@@ -47,89 +39,51 @@ void Player::processInput(GLFWwindow* window, double timeScale)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
+    if (!avatar) return;
 
-    if (false) {
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        avatar->triggerJump();
+        return;
+    }
 
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::FORWARD, timeScale);
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::BACKWARD, timeScale);
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::LEFT, timeScale);
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::RIGHT, timeScale);
-        if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::UP, timeScale);
-        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-            camera->processKeyboard(CameraMovement::DOWN, timeScale);
+    float forwardInput = 0.0f;
+    float strafeInput  = 0.0f;
 
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) forwardInput += 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) forwardInput -= 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) strafeInput  += 1.0f;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) strafeInput  -= 1.0f;
 
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-            if (!cursorEnabled && actionTimer <= 0.0f) {
-                RaycastResult result = raycast(100);
+    bool isSprinting = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 
-                if (result.hit) {
-                    grid->SetVoxel(result.voxelPos.x, result.voxelPos.y, result.voxelPos.z, VoxelType::AIR);
-                    actionTimer = ACTION_COOLDOWN;
-                }
-            }
-        }
-        if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-            if (actionTimer <= 0.0f) {
-                handleRightClick();
-                actionTimer = ACTION_COOLDOWN;
-            }
-        }
+    if (forwardInput != 0.0f || strafeInput != 0.0f) {
+        float forwardMagnitude = forwardInput * (isSprinting ? 1.0f : 0.5f);
+        float strafeMagnitude = strafeInput * (isSprinting ? 1.0f : 0.5f);
+        avatar->setLocomotionInput(forwardMagnitude, strafeMagnitude, isSprinting);
     } else {
-
-
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
-                avatar->setLocomotionSpeed(glm::min(avatar->getSpeed()+0.02f, 1.0f));  // Run
-            } else {
-                avatar->setLocomotionSpeed(glm::min(avatar->getSpeed()+0.01f, 0.5f));  // Walk
-
-            }
-//        }
-
-//        else if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-//            avatar->TransitionTo("jump");  // Or handle separately
-        } else {
-            avatar->setLocomotionSpeed(glm::max(avatar->getSpeed()-0.01f, 0.0f));  // Idle
-        }
+        avatar->setLocomotionInput(0.0f, 0.0f, false);
     }
 }
 
-
 void Player::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    // 1. Get the "this" pointer back from GLFW
     Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
-
-    // 2. Use the instance to access private variables/methods
     if (player && !player->cursorEnabled)
     {
         player->processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
-
-
     }
 }
 
 void Player::handleRightClick() {
     RaycastResult result = raycast(100.0f);
-
     if (result.hit) {
-        // The magic formula: Hit Position + Normal = Adjacent Space
         glm::ivec3 placePos = result.voxelPos + result.normal;
-
-        // Ensure we don't place a block inside our own head
         glm::ivec3 playerPos = glm::floor(camera->getPosition());
         if (placePos != playerPos) {
             grid->SetVoxel(placePos.x, placePos.y, placePos.z, VoxelType::DIRT);
         }
     }
 }
-
 
 void Player::mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 {
@@ -143,21 +97,17 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
             player->cursorEnabled = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
-
     }
 }
-
 
 void Player::scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
-
     if (player)
     {
         player->processScroll(static_cast<float>(yoffset));
     }
 }
-
 
 void Player::processMouseMovement(float xpos, float ypos)
 {
@@ -169,24 +119,14 @@ void Player::processScroll(float yoffset)
     camera->processScroll(yoffset);
 }
 
-
-
-
 RaycastResult Player::raycast(float maxDistance) {
     glm::vec3 rayOrigin = camera->getPosition();
     glm::vec3 rayDir = camera->getFront();
-
-    // Current voxel coordinates (int)
     glm::ivec3 voxelPos = glm::floor(rayOrigin);
-
-    // How far to travel in ray units to move 1 full unit in X, Y, or Z
     glm::vec3 deltaDist = glm::abs(glm::vec3(1.0f) / rayDir);
-
-    // Which direction to step in (+1 or -1)
     glm::ivec3 step = glm::sign(rayDir);
-
-    // Distance to the next voxel boundary
     glm::vec3 sideDist;
+
     sideDist.x = (step.x > 0) ? (voxelPos.x + 1.0f - rayOrigin.x) * deltaDist.x : (rayOrigin.x - voxelPos.x) * deltaDist.x;
     sideDist.y = (step.y > 0) ? (voxelPos.y + 1.0f - rayOrigin.y) * deltaDist.y : (rayOrigin.y - voxelPos.y) * deltaDist.y;
     sideDist.z = (step.z > 0) ? (voxelPos.z + 1.0f - rayOrigin.z) * deltaDist.z : (rayOrigin.z - voxelPos.z) * deltaDist.z;
@@ -195,12 +135,10 @@ RaycastResult Player::raycast(float maxDistance) {
     glm::ivec3 lastNormal(0);
 
     while (traveled < maxDistance) {
-        // Check if current voxelPos is solid in your Grid
         if (grid->IsSolid(voxelPos.x, voxelPos.y, voxelPos.z)) {
             return {true, voxelPos, lastNormal};
         }
 
-        // Jump to next voxel boundary
         if (sideDist.x < sideDist.y && sideDist.x < sideDist.z) {
             traveled = sideDist.x;
             sideDist.x += deltaDist.x;
@@ -221,8 +159,6 @@ RaycastResult Player::raycast(float maxDistance) {
     return {false};
 }
 
-
-
 void Player::setAvatar(scene::components::CharacterControllerComponent* newAvatar) {
     avatar = newAvatar;
 }
@@ -230,4 +166,3 @@ void Player::setAvatar(scene::components::CharacterControllerComponent* newAvata
 scene::components::CharacterControllerComponent* Player::getAvatar() {
     return avatar;
 }
-
