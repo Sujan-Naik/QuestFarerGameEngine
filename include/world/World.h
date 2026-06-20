@@ -173,17 +173,49 @@ namespace world {
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
-            auto idleState = std::make_shared<SimpleAnimationState>();
-            idleState->animation = playerAssets.get("HumanM@Idle01");
+
+            auto idleClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Idle01"));
+            auto idleState = std::make_shared<AnimationState>(std::move(idleClip));
             idleState->rootBoneNames = {"B-root"};
 
-            auto locState = std::make_shared<LocomotionBlendState>();
-            locState->walk = playerAssets.get("HumanM@Walk01_Forward [RM]");
-            locState->run = playerAssets.get("HumanM@Run01_Forward [RM]");
+            auto multiDirectionalTree = std::make_unique<DirectionalBlendTree2D>();
+
+            // Forward Nodes
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Forward [RM]")),      glm::vec2(0.0f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Forward [RM]")),       glm::vec2(0.0f, 1.0f));
+
+            // Backward Nodes
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Backward [RM]")),     glm::vec2(0.0f, -0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Backward [RM]")),      glm::vec2(0.0f, -1.0f));
+
+            // Strafe Nodes (Left / Right)
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Left [RM]")),         glm::vec2(-0.5f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Left [RM]")),          glm::vec2(-1.0f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Right [RM]")),        glm::vec2(0.5f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Right [RM]")),         glm::vec2(1.0f, 0.0f));
+
+            // Diagonal Walk Nodes (Inner Ring - Magnitude 0.707)
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_ForwardLeft [RM]")),  glm::vec2(-0.5f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_ForwardRight [RM]")), glm::vec2(0.5f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_BackwardLeft [RM]")), glm::vec2(-0.5f, -0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_BackwardRight [RM]")),glm::vec2(0.5f, -0.5f));
+
+            // Diagonal Run Nodes (Outer Ring - Magnitude ~1.0 Normalized)
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_ForwardLeft [RM]")),   glm::vec2(-0.707f, 0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_ForwardRight [RM]")),  glm::vec2(0.707f, 0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_BackwardLeft [RM]")),  glm::vec2(-0.707f, -0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_BackwardRight [RM]")), glm::vec2(0.707f, -0.707f));
+
+            auto locState = std::make_shared<AnimationState>(std::move(multiDirectionalTree));
             locState->rootBoneNames = {"B-root"};
+
+            auto jumpClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Jump01 [RM]"));
+            auto jumpState = std::make_shared<AnimationState>(std::move(jumpClip));
+            jumpState->rootBoneNames = {"B-root"};
 
             sharedFSM->RegisterState("Idle", idleState);
             sharedFSM->RegisterState("Locomotion", locState);
+            sharedFSM->RegisterState("Jump", jumpState);
             sharedFSM->TransitionTo("Idle");
 
             gameObjects[entityId] = std::make_unique<AnimationModelObject>(
@@ -192,7 +224,7 @@ namespace world {
 
             CharacterControllerComponent cc(entityId, &gameObjects[entityId]->transform, sharedFSM);
             cc.initialize(playerAssets.model);
-            cc.setLocomotionSpeed(0.0f);
+            cc.setLocomotionInput(0.0f, 0.0f, false);
             cc.setECSManager(ecsManager);
             ecsManager->addCharacterControllerComponent(entityId, cc);
 
