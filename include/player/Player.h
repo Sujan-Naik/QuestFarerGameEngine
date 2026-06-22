@@ -10,22 +10,21 @@
 #include "../../include/voxel/Grid.h"
 #include "../scene/objects/GameObject.h"
 #include "../scene/components/CharacterControllerComponent.h"
+#include "../scene/components/ECSManager.h" // Add this include
 
 using namespace voxel;
+
 namespace player {
     struct RaycastResult {
         bool hit = false;
-        glm::ivec3 voxelPos; // The actual voxel hit
-        glm::ivec3 normal;   // Which face was hit (useful for placing blocks)
+        glm::ivec3 voxelPos;
+        glm::ivec3 normal;
     };
 
     class Player {
-
     private:
         std::unique_ptr<Camera> camera = std::make_unique<Camera>();
-
-        scene::components::CharacterControllerComponent* avatar;
-
+        int avatarEntityId; // Changed from raw pointer to ID
         std::shared_ptr<Grid> grid;
 
         RaycastResult raycast(float maxDistance);
@@ -34,38 +33,29 @@ namespace player {
         bool cursorEnabled = false;
 
         void handleRightClick();
-
-        double actionTimer;
+        double actionTimer = 0.0;
 
     public:
+        Player(std::shared_ptr<Grid> gridPtr, int entityId); // Constructor updated
 
-        Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent* avatar);
+        void updateCamera(scene::components::ECSManager& ecs); // Needs ECS access
 
-        void updateCamera();
+        [[nodiscard]] const rendering::RenderContext getRenderContext() const;
 
-            [[nodiscard]] const rendering::RenderContext getRenderContext() const;
-
-        void processInput(GLFWwindow *window, double elapsed);
-
+        void processInput(GLFWwindow *window, double elapsed, scene::components::ECSManager& ecs); // Needs ECS access
 
         static void mouse_callback(GLFWwindow *, double xpos, double ypos);
-
         static void mouse_button_callback(GLFWwindow *window, int button, int action, int);
-
         static void scroll_callback(GLFWwindow *, double, double yoffset);
 
         void processMouseMovement(float xpos, float ypos);
-
         void processScroll(float yoffset);
 
-        void setAvatar( scene::components::CharacterControllerComponent* newAvatar);
+        void setAvatarId(int entityId);
+        int getAvatarId() const;
 
-        scene::components::CharacterControllerComponent * getAvatar();
-
-        const glm::vec3 &getGetPosition() const;
-
-        glm::vec3 getPosition();
+        glm::vec3 getPosition(scene::components::ECSManager& ecs); // Needs ECS access
     };
 }
 
-#endif //QUESTFARERGAMEENGINE_PLAYER_H
+#endif

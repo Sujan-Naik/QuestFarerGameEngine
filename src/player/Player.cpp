@@ -4,8 +4,8 @@
 
 using namespace player;
 
-Player::Player(std::shared_ptr<Grid> gridPtr, scene::components::CharacterControllerComponent * avatar)
-        : grid(std::move(gridPtr)), avatar(avatar) {}
+Player::Player(std::shared_ptr<Grid> gridPtr, int entityId)
+        : grid(std::move(gridPtr)), avatarEntityId(entityId) {}
 
 const rendering::RenderContext Player::getRenderContext() const {
     const glm::mat4 view       = camera->getViewMatrix();
@@ -13,23 +13,28 @@ const rendering::RenderContext Player::getRenderContext() const {
     return rendering::RenderContext{camera->getPosition(), projection, view};
 }
 
-void Player::updateCamera(){
-    if (avatar){
+void Player::updateCamera(scene::components::ECSManager& ecs){
+    auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
+    if (avatar && avatar->transform){
         glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw()), glm::vec3(0.0f, 1.0f, 0.0f));
-        avatar->getTransform()->rotation = yawRotation;
+        avatar->transform->rotation = yawRotation;
 
-        glm::vec3 offset =(avatar->getTransform()->getBack() * glm::vec3(2,2,2) +  avatar->getTransform()->getUp() * glm::vec3(0,0.1,0) ) *
-                          avatar->getTransform()->getSize().x ;
-        glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->getTransform()->getTop() + offset, 0.2);
-        camera->setPosition( newCameraPosition);
+        glm::vec3 offset = (avatar->transform->getBack() * glm::vec3(2, 2, 2) + avatar->transform->getUp() * glm::vec3(0, 0.1f, 0)) *
+                           avatar->transform->getSize().x;
+        glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->transform->getTop() + offset, 0.2f);
+        camera->setPosition(newCameraPosition);
     }
 }
 
-glm::vec3 Player::getPosition()  {
-    return avatar->getTransform()->position;
+glm::vec3 Player::getPosition(scene::components::ECSManager& ecs) {
+    auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
+    if (avatar && avatar->transform) {
+        return avatar->transform->position;
+    }
+    return glm::vec3(0.0f);
 }
 
-void Player::processInput(GLFWwindow* window, double timeScale)
+void Player::processInput(GLFWwindow* window, double timeScale, scene::components::ECSManager& ecs)
 {
     actionTimer -= FIXED_TIMESTEP * timeScale;
 
@@ -39,11 +44,11 @@ void Player::processInput(GLFWwindow* window, double timeScale)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
 
-    if (!avatar) return;
+    auto* liveAvatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
+    if (!liveAvatar || liveAvatar->getEntityId() == -1) return;
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        avatar->triggerJump();
-        return;
+        liveAvatar->m_wantsToJump = true;
     }
 
     float forwardInput = 0.0f;
@@ -59,9 +64,12 @@ void Player::processInput(GLFWwindow* window, double timeScale)
     if (forwardInput != 0.0f || strafeInput != 0.0f) {
         float forwardMagnitude = forwardInput * (isSprinting ? 1.0f : 0.5f);
         float strafeMagnitude = strafeInput * (isSprinting ? 1.0f : 0.5f);
-        avatar->setLocomotionInput(forwardMagnitude, strafeMagnitude, isSprinting);
+
+        liveAvatar->m_currentDirection = glm::vec2(strafeMagnitude, forwardMagnitude);
+        liveAvatar->m_currentSpeedFactor = glm::length(liveAvatar->m_currentDirection);
     } else {
-        avatar->setLocomotionInput(0.0f, 0.0f, false);
+        liveAvatar->m_currentDirection = glm::vec2(0.0f);
+        liveAvatar->m_currentSpeedFactor = 0.0f;
     }
 }
 
@@ -159,10 +167,10 @@ RaycastResult Player::raycast(float maxDistance) {
     return {false};
 }
 
-void Player::setAvatar(scene::components::CharacterControllerComponent* newAvatar) {
-    avatar = newAvatar;
+void Player::setAvatarId(int entityId) {
+    avatarEntityId = entityId;
 }
 
-scene::components::CharacterControllerComponent* Player::getAvatar() {
-    return avatar;
+int Player::getAvatarId() const {
+    return avatarEntityId;
 }

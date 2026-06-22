@@ -18,6 +18,7 @@ namespace scene::components {
 
     PhysicsComponent* ECSManager::getPhysicsComponent(int entityID) {
         int denseIndex = physicsComponentsSparse[entityID];
+        if (denseIndex == -1) return nullptr;
         return &physicsComponentsDense[denseIndex];
     }
 
@@ -33,7 +34,15 @@ namespace scene::components {
 
     void ECSManager::removePhysicsComponent(int entityID) {
         int denseIndex = physicsComponentsSparse[entityID];
-        physicsComponentsDense[denseIndex] = physicsComponentsDense[physicsComponentsAmount - 1];
+        if (denseIndex == -1) return;
+
+        int lastDenseIndex = physicsComponentsAmount - 1;
+        if (denseIndex != lastDenseIndex) {
+            physicsComponentsDense[denseIndex] = physicsComponentsDense[lastDenseIndex];
+            int movedEntityID = physicsComponentsDense[denseIndex].getEntityId();
+            physicsComponentsSparse[movedEntityID] = denseIndex;
+        }
+
         physicsComponentsSparse[entityID] = -1;
         physicsComponentsAmount--;
     }
@@ -50,7 +59,15 @@ namespace scene::components {
 
     void ECSManager::removeAIComponent(int entityID) {
         int denseIndex = aiComponentsSparse[entityID];
-        aiComponentsDense[denseIndex] = aiComponentsDense[aiComponentsAmount - 1];
+        if (denseIndex == -1) return;
+
+        int lastDenseIndex = aiComponentsAmount - 1;
+        if (denseIndex != lastDenseIndex) {
+            aiComponentsDense[denseIndex] = aiComponentsDense[lastDenseIndex];
+            int movedEntityID = aiComponentsDense[denseIndex].getEntityId();
+            aiComponentsSparse[movedEntityID] = denseIndex;
+        }
+
         aiComponentsSparse[entityID] = -1;
         aiComponentsAmount--;
     }
@@ -60,7 +77,6 @@ namespace scene::components {
     }
 
     void ECSManager::addCharacterControllerComponent(int entityID, const CharacterControllerComponent& component) {
-
         characterControllerComponentsSparse[entityID] = characterControllerComponentsAmount;
         characterControllerComponentsDense[characterControllerComponentsAmount] = component;
         characterControllerComponentsAmount++;
@@ -68,22 +84,28 @@ namespace scene::components {
 
     void ECSManager::removeCharacterControllerComponent(int entityID) {
         int denseIndex = characterControllerComponentsSparse[entityID];
-        characterControllerComponentsDense[denseIndex] = characterControllerComponentsDense[characterControllerComponentsAmount - 1];
+        if (denseIndex == -1) return;
+
+        int lastDenseIndex = characterControllerComponentsAmount - 1;
+        if (denseIndex != lastDenseIndex) {
+            characterControllerComponentsDense[denseIndex] = characterControllerComponentsDense[lastDenseIndex];
+            int movedEntityID = characterControllerComponentsDense[denseIndex].getEntityId();
+            characterControllerComponentsSparse[movedEntityID] = denseIndex;
+        }
+
         characterControllerComponentsSparse[entityID] = -1;
         characterControllerComponentsAmount--;
     }
 
-    void ECSManager::update() {
-        for (int i = 0; i < aiComponentsAmount; i++) {
-            aiComponentsDense[i].update();
-        }
+    CharacterControllerComponent* ECSManager::getCharacterControllerComponentsDense() {
+        return characterControllerComponentsDense;
+    }
 
-        for (int i = 0; i < characterControllerComponentsAmount; i++) {
-            characterControllerComponentsDense[i].update();
-        }
+    int ECSManager::getCharacterControllerComponentsAmount() const {
+        return characterControllerComponentsAmount;
+    }
 
-        for (int i = 0; i < physicsComponentsAmount; i++) {
-            physicsComponentsDense[i].update();
-        }
+    int ECSManager::getAiComponentsAmount() const {
+        return aiComponentsAmount;
     }
 }

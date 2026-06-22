@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
-#include <string>
 #include "Component.h"
 #include "../../rendering/model/ModelAnimation.h"
 
@@ -14,13 +13,12 @@ namespace scene::components {
         int boneIndex;
         glm::vec3 localMin;
         glm::vec3 localMax;
-        glm::vec3 currentMin; // World-aligned AABB min for this bone
-        glm::vec3 currentMax; // World-aligned AABB max for this bone
+        glm::vec3 currentMin;
+        glm::vec3 currentMax;
     };
 
     class PhysicsComponent : public Component {
     public:
-        // Broadphase bounds (encapsulates all bones)
         glm::vec3 localTotalMin{0.0f};
         glm::vec3 localTotalMax{0.0f};
 
@@ -38,11 +36,7 @@ namespace scene::components {
         explicit PhysicsComponent(int entityId);
         PhysicsComponent();
 
-        void receive(int message) override;
-        void update() override;
         void addModel(std::shared_ptr<ModelAnimation> mod);
-
-        // Utilities
         void applyForce(glm::vec3 force);
         void addVelocity(glm::vec3 vel);
         void integrate(float dt);

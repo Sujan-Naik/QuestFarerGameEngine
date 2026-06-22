@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <vector>
 #include <memory>
+#include <cmath>
 
 using namespace animation;
 
@@ -278,10 +279,13 @@ namespace scene::components::fsm {
 
             m_previousPhase = m_phase;
             float duration = rootNode->GetDurationSec(ctx);
-            m_phase += deltaTime / duration;
+
+            if (ctx.speed > 0.0f || duration > 0.0f) {
+                m_phase += deltaTime / duration;
+            }
 
             if (m_phase >= 1.0f) {
-                m_phase = fmod(m_phase, 1.0f);
+                m_phase = std::fmod(m_phase, 1.0f);
                 m_loopedThisFrame = true;
             } else {
                 m_loopedThisFrame = false;
@@ -292,25 +296,29 @@ namespace scene::components::fsm {
                 output.finalBoneMatrices.assign(boneCount, glm::mat4(1.0f));
             }
 
+            // --- 1. Evaluate into isolated scratch matrix space to calculate physics root deltas ---
+            std::vector<glm::mat4> scratchMatrices(boneCount, glm::mat4(1.0f));
             glm::vec3 rootPosAtCurrentPhase(0.0f);
-            rootNode->Evaluate(m_phase, ctx, output.finalBoneMatrices, rootPosAtCurrentPhase, false);
+            rootNode->Evaluate(m_phase, ctx, scratchMatrices, rootPosAtCurrentPhase, false);
 
             if (m_loopedThisFrame) {
                 glm::vec3 rootPosAtEnd(0.0f);
                 glm::vec3 rootPosAtStart(0.0f);
-                rootNode->Evaluate(0.999f, ctx, output.finalBoneMatrices, rootPosAtEnd, false);
-                rootNode->Evaluate(0.0f, ctx, output.finalBoneMatrices, rootPosAtStart, false);
+
+                rootNode->Evaluate(0.999f, ctx, scratchMatrices, rootPosAtEnd, false);
+                rootNode->Evaluate(0.0f, ctx, scratchMatrices, rootPosAtStart, false);
 
                 glm::vec3 rootPosAtPrev(0.0f);
-                rootNode->Evaluate(m_previousPhase, ctx, output.finalBoneMatrices, rootPosAtPrev, false);
+                rootNode->Evaluate(m_previousPhase, ctx, scratchMatrices, rootPosAtPrev, false);
 
                 m_rootDeltaThisFrame = (rootPosAtEnd - rootPosAtPrev) + (rootPosAtCurrentPhase - rootPosAtStart);
             } else {
                 glm::vec3 rootPosAtPrev(0.0f);
-                rootNode->Evaluate(m_previousPhase, ctx, output.finalBoneMatrices, rootPosAtPrev, false);
+                rootNode->Evaluate(m_previousPhase, ctx, scratchMatrices, rootPosAtPrev, false);
                 m_rootDeltaThisFrame = rootPosAtCurrentPhase - rootPosAtPrev;
             }
 
+            // --- 2. Evaluate visuals with ignoreRootMotion=true directly into final bone matrices ---
             rootNode->Evaluate(m_phase, ctx, output.finalBoneMatrices, output.m_rootBonePosition, true);
 
             output.rootGlobalTransform = glm::translate(glm::mat4(1.0f), output.m_rootBonePosition);

@@ -52,32 +52,18 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/rendering/mesh/MeshAnimation.h
         include/animation/Animation.h
         include/scene/objects/AnimationModelObject.h
-        src/physics/PhysicsSystem.cpp
-        include/physics/PhysicsSystem.h
+        src/scene/systems/PhysicsSystem.cpp
+        include/scene/systems/PhysicsSystem.h
         include/world/World.h
-        src/physics/PhysicsSystem.cpp
+        src/scene/systems/PhysicsSystem.cpp
         include/character/CharacterController.cpp
         include/character/CharacterController.h
         include/rendering/model/Model.h
         include/scene/components/CharacterControllerComponent.h
         include/scene/components/ECSManager.h
-        include/scene/components/fsm/AnimationState.h
         include/scene/components/fsm/AnimationFSM.h
         include/animation/AnimationAssetLibrary.h
         external/FastNoiseLite/FastNoiseLite.h
-        include/VoxelLib/Entity/Character/Animator.h
-        include/VoxelLib/Entity/Components/CharacterControllerComponent.h
-        include/VoxelLib/Entity/Components/PlayerControllerComponent.h
-        include/VoxelLib/Entity/FSM/StateMachine.h
-        include/VoxelLib/Mesh/MeshTypes.h
-        include/VoxelLib/Entity/FSM/Transition.h
-        include/VoxelLib/Entity/FSM/State.h
-        include/VoxelLib/Entity/Components/AI/AICharacterControllerComponent.h
-        include/VoxelLib/Mesh/VoxelMesh.h
-        include/VoxelLib/Partitoning/VoronoiDiagram.h
-        include/VoxelLib/Sampling/PoissonDS.h
-        include/VoxelLib/Terrain.h
-        include/VoxelLib/VoxelGrid.h
         include/world/ProceduralTerrainGenerator.h
         include/world/ProceduralTerrainGenerator.h
         include/world/ProceduralTerrainGenerator.h
@@ -86,6 +72,32 @@ add_executable(QuestFarerGameEngine src/main.cpp
         src/scene/components/CharacterControllerComponent.cpp
         src/scene/components/PhysicsComponent.cpp
         src/scene/ECSManager.cpp
+        src/scene/systems/System.cpp
+        include/scene/systems/System.h
+        include/scene/systems/System.h
+        src/scene/systems/CharacterControllerSystem.cpp
+        include/scene/systems/AISystem.h
+        include/scene/systems/AISystem.h
+        include/scene/systems/CharacterControllerSystem.h
+        include/scene/systems/CharacterControllerSystem.h
+        src/scene/systems/AISystem.cpp
+        src/scene/systems/AISystem.cpp
+        src/scene/systems/System.cpp
+        src/scene/systems/CharacterControllerSystem.cpp
+        include/scene/components/fsm/State.h
+        include/scene/components/fsm/State.h
+        include/scene/components/fsm/Transition.h
+        include/scene/components/fsm/Transition.h
+        include/scene/components/fsm/Transition.h
+        include/scene/components/fsm/AnimationFSM.h
+        src/scene/components/fsm/AnimationFSM.cpp
+        src/scene/components/fsm/AnimationFSM.cpp
+        src/scene/components/fsm/AnimationFSM.cpp
+        include/scene/components/fsm/ConcreteStates.h
+        src/scene/components/fsm/ConcreteStates.cpp
+        include/scene/components/fsm/ConcreteTransitions.h
+        src/scene/components/fsm/ConcreteTransitions.cpp
+        include/scene/components/fsm/AnimationState.h
 )
 
 add_custom_target(ForceCopyResources

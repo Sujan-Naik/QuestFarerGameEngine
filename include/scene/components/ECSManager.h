@@ -33,14 +33,15 @@ namespace scene::components {
         void removePhysicsComponent(int entityID);
 
         const AIComponent* getAiComponentsDense() const;
+        int getAiComponentsAmount() const;
         void addAIComponent(int entityID, const AIComponent& component);
         void removeAIComponent(int entityID);
 
+        CharacterControllerComponent* getCharacterControllerComponentsDense();
         CharacterControllerComponent& getCharacterControllerComponentFromSparse(int entityID);
+        int getCharacterControllerComponentsAmount() const;
         void addCharacterControllerComponent(int entityID, const CharacterControllerComponent& component);
         void removeCharacterControllerComponent(int entityID);
-
-        void update();
     };
 }
 
