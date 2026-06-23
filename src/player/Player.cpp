@@ -25,6 +25,17 @@ void Player::updateCamera(scene::components::ECSManager& ecs){
         camera->setPosition(newCameraPosition);
     }
 }
+//void Player::updateCamera(scene::components::ECSManager& ecs){
+//    auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
+//    if (avatar && avatar->transform){
+//
+//        glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw() + 90 ), glm::vec3(0.0f, 1.0f, 0.0f));
+//        avatar->transform->rotation = yawRotation;
+//
+//        glm::vec3 offset = (avatar->transform->getRight() * 10.0f );
+//        camera->setPosition( avatar->transform->getTop() + offset);
+//    }
+//}
 
 glm::vec3 Player::getPosition(scene::components::ECSManager& ecs) {
     auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
@@ -49,6 +60,10 @@ void Player::processInput(GLFWwindow* window, double timeScale, scene::component
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         liveAvatar->m_wantsToJump = true;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
+        liveAvatar->m_wantsToPunch = true;
     }
 
     float forwardInput = 0.0f;

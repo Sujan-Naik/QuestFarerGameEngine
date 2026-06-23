@@ -18,6 +18,7 @@
 #include "ProceduralTerrainGenerator.h"
 #include "../scene/components/fsm/ConcreteStates.h"
 #include "../scene/components/fsm/ConcreteTransitions.h"
+#include "../scene/systems/AttackSystem.h"
 #include <set>
 #include <future>
 #include <queue>
@@ -35,6 +36,7 @@ namespace world {
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
         std::shared_ptr<CharacterControllerSystem> characterControllerSystem = std::make_shared<CharacterControllerSystem>();
         std::shared_ptr<AISystem> aiSystem = std::make_shared<AISystem>();
+        std::shared_ptr<AttackSystem> attackSystem = std::make_shared<AttackSystem>();
         std::shared_ptr<Player> player;
         std::unique_ptr<LightingRenderer> lighting;
         std::shared_ptr<Logger> logger = std::make_shared<Logger>("world_log.txt");
@@ -165,7 +167,7 @@ namespace world {
 
         void initialisePlayer(glm::vec3 pos) {
             animation::AnimationAssetLibrary playerAssets;
-            playerAssets.loadFromFBX("resources/objects/humanoid/character.fbx");
+            playerAssets.loadFromFBX("resources/objects/humanoid/character1.fbx");
             if (!playerAssets.model) return;
 
             auto ourShader = std::make_unique<Shader>(
@@ -209,32 +211,40 @@ namespace world {
             auto jumpAnimState = std::make_shared<AnimationState>(std::move(jumpClip));
             jumpAnimState->rootBoneNames = {"B-root"};
 
+            auto punchClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Punch"));
+            auto punchAnimState = std::make_shared<AnimationState>(std::move(punchClip));
+            punchAnimState->rootBoneNames = {"B-root"};
+
             gameObjects[entityId] = std::make_unique<AnimationModelObject>(
                     entityId, playerAssets.model, std::move(ourShader), characterTransform, sharedFSM
             );
 
-            // --- CRITICAL FIX: Add component to registry before passing context addresses ---
             CharacterControllerComponent cc(entityId, &gameObjects[entityId]->transform, sharedFSM);
             cc.skeleton = playerAssets.model;
             ecsManager->addCharacterControllerComponent(entityId, cc);
 
-            // Fetch permanent stable heap location pointer
             CharacterControllerComponent* permanentCcPtr = &ecsManager->getCharacterControllerComponentFromSparse(entityId);
 
             auto stateIdle = std::make_shared<fsm::IdleState>(permanentCcPtr, idleAnimState);
             auto stateLocomotion = std::make_shared<fsm::LocomotionState>(permanentCcPtr, locAnimState);
             auto stateJump = std::make_shared<fsm::JumpState>(permanentCcPtr, jumpAnimState);
+            auto statePunch = std::make_shared<fsm::PunchState>(permanentCcPtr, punchAnimState);
 
             fsm::AnimationFSM::TransitionMap transitions;
 
             transitions[stateIdle].push_back({stateLocomotion, std::make_shared<fsm::IdleToLocomotionTransition>(permanentCcPtr)});
             transitions[stateIdle].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
+            transitions[stateIdle].push_back({statePunch, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr)});
 
             transitions[stateLocomotion].push_back({stateIdle, std::make_shared<fsm::LocomotionToIdleTransition>(permanentCcPtr)});
             transitions[stateLocomotion].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
+            transitions[stateLocomotion].push_back({statePunch, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr)});
 
             transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
             transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
+
+            transitions[statePunch].push_back({stateLocomotion, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, statePunch)});
+            transitions[statePunch].push_back({stateIdle, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, statePunch)});
 
             sharedFSM->Initialize(transitions, stateIdle);
 
@@ -244,6 +254,29 @@ namespace world {
             PhysicsComponent pc(entityId);
             pc.addModel(playerAssets.model);
             ecsManager->addPhysicsComponent(entityId, pc);
+
+            HealthComponent hc(entityId);
+            hc.currentHealth = 1000.0f;
+            hc.maxHealth = 1000.0f;
+            ecsManager->addHealthComponent(entityId, hc);
+
+            AttackComponent atc(entityId);
+            atc.attackRadius = 2.0f;
+
+            if (playerAssets.model) {
+                const auto& boneInfoMap = playerAssets.model->GetBoneInfoMap();
+                auto it = boneInfoMap.find("B-hand.L");
+                if (it != boneInfoMap.end()) {
+                    atc.damagingBoneIndex = it->second.id;
+                } else {
+                    atc.damagingBoneIndex = -1;
+                }
+            } else {
+                atc.damagingBoneIndex = -1;
+            }
+
+            ecsManager->addAttackComponent(entityId, atc);
+
             numEntities++;
         }
 
@@ -297,12 +330,10 @@ namespace world {
                     entityId, playerAssets.model, std::move(ourShader), characterTransform, sharedFSM
             );
 
-            // --- CRITICAL FIX: Add component to registry before passing context addresses ---
             CharacterControllerComponent cc(entityId, &gameObjects[entityId]->transform, sharedFSM);
             cc.skeleton = playerAssets.model;
             ecsManager->addCharacterControllerComponent(entityId, cc);
 
-            // Fetch permanent stable heap location pointer
             CharacterControllerComponent* permanentCcPtr = &ecsManager->getCharacterControllerComponentFromSparse(entityId);
 
             auto stateIdle = std::make_shared<fsm::IdleState>(permanentCcPtr, idleAnimState);
@@ -326,8 +357,13 @@ namespace world {
             pc.addModel(playerAssets.model);
             ecsManager->addPhysicsComponent(entityId, pc);
 
-            AIComponent ac(entityId);
-            ecsManager->addAIComponent(entityId, ac);
+//            AIComponent ac(entityId);
+//            ecsManager->addAIComponent(entityId, ac);
+
+            HealthComponent hc(entityId);
+            hc.currentHealth = 1000.0f;
+            hc.maxHealth = 1000.0f;
+            ecsManager->addHealthComponent(entityId, hc);
 
             numEntities++;
         }
@@ -344,7 +380,7 @@ namespace world {
         void initialise(GLFWwindow *window) {
             this->window = window;
             initialisePlayer({30, 100, 30});
-            initialiseNPC({30, 100, 40});
+            initialiseNPC({35, 100, 30});
             createVoxels();
             updateTerrainStreaming();
         }
@@ -355,11 +391,17 @@ namespace world {
             updateTerrainStreaming();
             aiSystem->updateAI(*ecsManager, grid, dt);
             characterControllerSystem->update(*ecsManager, dt);
+
             physicsSystem->step(
                     ecsManager->getPhysicsComponentsDense(),
                     ecsManager->getPhysicsComponentsAmount(),
                     gameObjects, grid, dt
             );
+
+            attackSystem->update(*ecsManager, dt);
+
+
+
             player->updateCamera(*ecsManager);
         }
 

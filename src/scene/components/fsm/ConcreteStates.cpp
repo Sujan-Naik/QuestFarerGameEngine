@@ -39,4 +39,8 @@ namespace scene::components::fsm {
     bool JumpState::IsComplete() const {
         return m_legacyAnimState ? m_legacyAnimState->GetLoopedThisFrame() : false;
     }
+
+    bool PunchState::IsComplete() const {
+        return m_legacyAnimState ? m_legacyAnimState->GetLoopedThisFrame() : false;
+    }
 }

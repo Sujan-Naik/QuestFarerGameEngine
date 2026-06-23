@@ -11,6 +11,7 @@ namespace scene::components {
         void update(ECSManager& ecs, float dt) override;
         void setLocomotionInput(CharacterControllerComponent& ctrl, float forward, float strafe, bool isSprinting);
         void triggerJump(ECSManager& ecs, CharacterControllerComponent& ctrl);
+        void triggerPunch(ECSManager& ecs, CharacterControllerComponent& ctrl);
         void receiveMessage(CharacterControllerComponent& ctrl, int message);
     };
 }

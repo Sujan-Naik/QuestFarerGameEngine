@@ -25,6 +25,7 @@ namespace scene::components {
         glm::vec2 m_currentDirection{0.0f};
         float m_movementScale = 0.12f;
         bool m_wantsToJump = false;
+        bool m_wantsToPunch = false;
 
         explicit CharacterControllerComponent(int entityId, Transform* transformPtr, std::shared_ptr<AnimationFSM> animFSM);
         CharacterControllerComponent();
@@ -33,7 +34,9 @@ namespace scene::components {
             m_wantsToJump = true;
         }
 
-
+        void triggerPunch() {
+            m_wantsToPunch = true;
+        }
     };
 }
 

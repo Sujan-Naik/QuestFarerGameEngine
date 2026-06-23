@@ -1,5 +1,3 @@
-
-
 #include "../../../../include/scene/components/CharacterControllerComponent.h"
 #include "../../../../include/scene/components/fsm/ConcreteTransitions.h"
 #include "../../../../include/scene/components/PhysicsComponent.h"
@@ -38,5 +36,19 @@ namespace scene::components::fsm {
 
     bool JumpToFallbackTransition::ShouldTransition() {
         return m_jumpState->IsComplete();
+    }
+
+    AnyToPunchTransition::AnyToPunchTransition(CharacterControllerComponent* ctrl)
+            : m_controller(ctrl) {}
+
+    bool AnyToPunchTransition::ShouldTransition() {
+        return m_controller && m_controller->m_wantsToPunch;
+    }
+
+    PunchToFallbackTransition::PunchToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> punchState)
+            : m_controller(ctrl), m_punchState(punchState) {}
+
+    bool PunchToFallbackTransition::ShouldTransition() {
+        return m_punchState && m_punchState->IsComplete();
     }
 }

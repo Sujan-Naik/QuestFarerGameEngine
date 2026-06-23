@@ -1,3 +1,4 @@
+
 #include "../../include/scene/components/ECSManager.h"
 
 namespace scene::components {
@@ -7,6 +8,8 @@ namespace scene::components {
             physicsComponentsSparse[i] = -1;
             aiComponentsSparse[i] = -1;
             characterControllerComponentsSparse[i] = -1;
+            attackComponentsSparse[i] = -1;
+            healthComponentsSparse[i] = -1;
         }
     }
 
@@ -76,6 +79,12 @@ namespace scene::components {
         return characterControllerComponentsDense[characterControllerComponentsSparse[entityID]];
     }
 
+    CharacterControllerComponent* ECSManager::getCharacterControllerComponent(int entityID) {
+        int denseIndex = characterControllerComponentsSparse[entityID];
+        if (denseIndex == -1) return nullptr;
+        return &characterControllerComponentsDense[denseIndex];
+    }
+
     void ECSManager::addCharacterControllerComponent(int entityID, const CharacterControllerComponent& component) {
         characterControllerComponentsSparse[entityID] = characterControllerComponentsAmount;
         characterControllerComponentsDense[characterControllerComponentsAmount] = component;
@@ -107,5 +116,75 @@ namespace scene::components {
 
     int ECSManager::getAiComponentsAmount() const {
         return aiComponentsAmount;
+    }
+
+    AttackComponent* ECSManager::getAttackComponentsDense() {
+        return attackComponentsDense;
+    }
+
+    AttackComponent* ECSManager::getAttackComponent(int entityID) {
+        int denseIndex = attackComponentsSparse[entityID];
+        if (denseIndex == -1) return nullptr;
+        return &attackComponentsDense[denseIndex];
+    }
+
+    int ECSManager::getAttackComponentsAmount() const {
+        return attackComponentsAmount;
+    }
+
+    void ECSManager::addAttackComponent(int entityID, const AttackComponent& component) {
+        attackComponentsSparse[entityID] = attackComponentsAmount;
+        attackComponentsDense[attackComponentsAmount] = component;
+        attackComponentsAmount++;
+    }
+
+    void ECSManager::removeAttackComponent(int entityID) {
+        int denseIndex = attackComponentsSparse[entityID];
+        if (denseIndex == -1) return;
+
+        int lastDenseIndex = attackComponentsAmount - 1;
+        if (denseIndex != lastDenseIndex) {
+            attackComponentsDense[denseIndex] = attackComponentsDense[lastDenseIndex];
+            int movedEntityID = attackComponentsDense[denseIndex].getEntityId();
+            attackComponentsSparse[movedEntityID] = denseIndex;
+        }
+
+        attackComponentsSparse[entityID] = -1;
+        attackComponentsAmount--;
+    }
+
+    HealthComponent* ECSManager::getHealthComponentsDense() {
+        return healthComponentsDense;
+    }
+
+    HealthComponent* ECSManager::getHealthComponent(int entityID) {
+        int denseIndex = healthComponentsSparse[entityID];
+        if (denseIndex == -1) return nullptr;
+        return &healthComponentsDense[denseIndex];
+    }
+
+    int ECSManager::getHealthComponentsAmount() const {
+        return healthComponentsAmount;
+    }
+
+    void ECSManager::addHealthComponent(int entityID, const HealthComponent& component) {
+        healthComponentsSparse[entityID] = healthComponentsAmount;
+        healthComponentsDense[healthComponentsAmount] = component;
+        healthComponentsAmount++;
+    }
+
+    void ECSManager::removeHealthComponent(int entityID) {
+        int denseIndex = healthComponentsSparse[entityID];
+        if (denseIndex == -1) return;
+
+        int lastDenseIndex = healthComponentsAmount - 1;
+        if (denseIndex != lastDenseIndex) {
+            healthComponentsDense[denseIndex] = healthComponentsDense[lastDenseIndex];
+            int movedEntityID = healthComponentsDense[denseIndex].getEntityId();
+            healthComponentsSparse[movedEntityID] = denseIndex;
+        }
+
+        healthComponentsSparse[entityID] = -1;
+        healthComponentsAmount--;
     }
 }

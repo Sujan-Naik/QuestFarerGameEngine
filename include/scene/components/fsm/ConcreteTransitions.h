@@ -46,6 +46,24 @@ namespace scene::components::fsm {
         JumpToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> jumpState);
         bool ShouldTransition() override;
     };
+
+
+    class AnyToPunchTransition : public Transition {
+    private:
+        CharacterControllerComponent* m_controller;
+    public:
+        explicit AnyToPunchTransition(CharacterControllerComponent* ctrl);
+        bool ShouldTransition() override; // Checks if the punch input/key was pressed
+    };
+
+    class PunchToFallbackTransition : public Transition {
+    private:
+        CharacterControllerComponent* m_controller;
+        std::shared_ptr<State> m_punchState;
+    public:
+        PunchToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> punchState);
+        bool ShouldTransition() override; // Checks if the jab animation clip finished playing
+    };
 }
 
 #endif

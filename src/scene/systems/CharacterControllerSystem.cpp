@@ -16,7 +16,6 @@ namespace scene::components {
 
             PhysicsComponent* physics = ecs.getPhysicsComponent(ctrl.getEntityId());
 
-            // 1. Snapshot the current state pointer before checking transitions
             auto previousState = ctrl.fsm->GetCurrentState();
 
             ctrl.fsm->UpdateParameters(ctrl.m_currentSpeedFactor, ctrl.m_currentDirection);
@@ -25,8 +24,6 @@ namespace scene::components {
             auto currentState = ctrl.fsm->GetCurrentState();
             if (!currentState) continue;
 
-            // 2. CRITICAL FIX: If the state changed this frame, force an immediate data evaluation
-            // on the new state so its visual matrices are populated before the engine draws them.
             if (currentState != previousState) {
                 fsm::BlendParameterContext ctx;
                 ctx.speed = ctrl.m_currentSpeedFactor;
@@ -38,7 +35,10 @@ namespace scene::components {
                 ctrl.m_wantsToJump = false;
             }
 
-            // 3. Now it is completely safe to read deltas and bones without 1-frame gaps
+            if (ctrl.m_wantsToPunch) {
+                ctrl.m_wantsToPunch = false;
+            }
+
             glm::vec3 delta = currentState->GetRootDeltaThisFrame();
             glm::vec3 worldDelta = (ctrl.transform->getForward() * delta.z) +
                                    (ctrl.transform->getRight() * delta.x) +
@@ -60,6 +60,10 @@ namespace scene::components {
 
     void CharacterControllerSystem::triggerJump(ECSManager& ecs, CharacterControllerComponent& ctrl) {
         ctrl.m_wantsToJump = true;
+    }
+
+    void CharacterControllerSystem::triggerPunch(ECSManager& ecs, CharacterControllerComponent& ctrl) {
+        ctrl.m_wantsToPunch = true;
     }
 
     void CharacterControllerSystem::receiveMessage(CharacterControllerComponent& ctrl, int message) {

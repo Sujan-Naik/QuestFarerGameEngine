@@ -42,6 +42,12 @@ namespace scene::components::fsm {
         using BaseAnimState::BaseAnimState;
         bool IsComplete() const override;
     };
+
+    class PunchState : public BaseAnimState {
+    public:
+        using BaseAnimState::BaseAnimState;
+        bool IsComplete() const override;
+    };
 }
 
 #endif
