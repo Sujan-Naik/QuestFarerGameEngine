@@ -10,7 +10,7 @@
 #include "../../include/voxel/Grid.h"
 #include "../scene/objects/GameObject.h"
 #include "../scene/components/CharacterControllerComponent.h"
-#include "../scene/components/ECSManager.h" // Add this include
+#include "../scene/components/ECSManager.h"
 
 using namespace voxel;
 
@@ -35,8 +35,10 @@ namespace player {
         void handleRightClick();
         double actionTimer = 0.0;
 
+        std::shared_ptr<scene::components::ECSManager> ecsManager;
+
     public:
-        Player(std::shared_ptr<Grid> gridPtr, int entityId); // Constructor updated
+        Player(std::shared_ptr<Grid> gridPtr, int entityId,  std::shared_ptr<scene::components::ECSManager> ecsManager);
 
         void updateCamera(scene::components::ECSManager& ecs); // Needs ECS access
 

@@ -25,6 +25,7 @@ namespace scene::components::fsm {
         if (m_controller->m_wantsToJump) {
             PhysicsComponent* physics = m_ecs.getPhysicsComponent(m_controller->getEntityId());
             if (physics && physics->onGround) {
+                m_controller->m_wantsToJump = false;
                 return true;
             }
         }
@@ -38,17 +39,25 @@ namespace scene::components::fsm {
         return m_jumpState->IsComplete();
     }
 
-    AnyToPunchTransition::AnyToPunchTransition(CharacterControllerComponent* ctrl)
-            : m_controller(ctrl) {}
+    AnyToPunchTransition::AnyToPunchTransition(CharacterControllerComponent* ctrl, BoxingPunch targetPunch)
+            : m_controller(ctrl), m_targetPunch(targetPunch) {}
 
     bool AnyToPunchTransition::ShouldTransition() {
-        return m_controller && m_controller->m_wantsToPunch;
+        if (m_controller && m_controller->m_wantsToPunch && m_controller->m_activePunchIntent == m_targetPunch) {
+            m_controller->m_wantsToPunch = false;
+            return true;
+        }
+        return false;
     }
 
     PunchToFallbackTransition::PunchToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> punchState)
             : m_controller(ctrl), m_punchState(punchState) {}
 
     bool PunchToFallbackTransition::ShouldTransition() {
-        return m_punchState && m_punchState->IsComplete();
+        if (m_punchState && m_punchState->IsComplete()) {
+            m_controller->m_activePunchIntent = BoxingPunch::None;
+            return true;
+        }
+        return false;
     }
 }

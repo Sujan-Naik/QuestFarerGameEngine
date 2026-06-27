@@ -31,14 +31,6 @@ namespace scene::components {
                 currentState->Update(FIXED_TIMESTEP, ctx);
             }
 
-            if (ctrl.m_wantsToJump) {
-                ctrl.m_wantsToJump = false;
-            }
-
-            if (ctrl.m_wantsToPunch) {
-                ctrl.m_wantsToPunch = false;
-            }
-
             glm::vec3 delta = currentState->GetRootDeltaThisFrame();
             glm::vec3 worldDelta = (ctrl.transform->getForward() * delta.z) +
                                    (ctrl.transform->getRight() * delta.x) +

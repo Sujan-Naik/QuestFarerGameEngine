@@ -167,7 +167,7 @@ namespace world {
 
         void initialisePlayer(glm::vec3 pos) {
             animation::AnimationAssetLibrary playerAssets;
-            playerAssets.loadFromFBX("resources/objects/humanoid/character1.fbx");
+            playerAssets.loadFromFBX("resources/objects/humanoid/character2.fbx");
             if (!playerAssets.model) return;
 
             auto ourShader = std::make_unique<Shader>(
@@ -211,9 +211,25 @@ namespace world {
             auto jumpAnimState = std::make_shared<AnimationState>(std::move(jumpClip));
             jumpAnimState->rootBoneNames = {"B-root"};
 
-            auto punchClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Punch"));
-            auto punchAnimState = std::make_shared<AnimationState>(std::move(punchClip));
-            punchAnimState->rootBoneNames = {"B-root"};
+            auto jabClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Jab"));
+            auto jabAnimState = std::make_shared<AnimationState>(std::move(jabClip));
+            jabAnimState->rootBoneNames = {"B-root"};
+
+            auto crossClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Cross"));
+            auto crossAnimState = std::make_shared<AnimationState>(std::move(crossClip));
+            crossAnimState->rootBoneNames = {"B-root"};
+
+            auto hookClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Hook"));
+            auto hookAnimState = std::make_shared<AnimationState>(std::move(hookClip));
+            hookAnimState->rootBoneNames = {"B-root"};
+
+            auto rightHookClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@RightHook"));
+            auto rightHookAnimState = std::make_shared<AnimationState>(std::move(rightHookClip));
+            rightHookAnimState->rootBoneNames = {"B-root"};
+
+            auto uppercutClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Uppercut"));
+            auto uppercutAnimState = std::make_shared<AnimationState>(std::move(uppercutClip));
+            uppercutAnimState->rootBoneNames = {"B-root"};
 
             gameObjects[entityId] = std::make_unique<AnimationModelObject>(
                     entityId, playerAssets.model, std::move(ourShader), characterTransform, sharedFSM
@@ -228,27 +244,49 @@ namespace world {
             auto stateIdle = std::make_shared<fsm::IdleState>(permanentCcPtr, idleAnimState);
             auto stateLocomotion = std::make_shared<fsm::LocomotionState>(permanentCcPtr, locAnimState);
             auto stateJump = std::make_shared<fsm::JumpState>(permanentCcPtr, jumpAnimState);
-            auto statePunch = std::make_shared<fsm::PunchState>(permanentCcPtr, punchAnimState);
+
+            auto stateJab = std::make_shared<fsm::PunchState>(permanentCcPtr, jabAnimState);
+            auto stateCross = std::make_shared<fsm::PunchState>(permanentCcPtr, crossAnimState);
+            auto stateHook = std::make_shared<fsm::PunchState>(permanentCcPtr, hookAnimState);
+            auto stateRightHook = std::make_shared<fsm::PunchState>(permanentCcPtr, rightHookAnimState);
+            auto stateUppercut = std::make_shared<fsm::PunchState>(permanentCcPtr, uppercutAnimState);
 
             fsm::AnimationFSM::TransitionMap transitions;
 
             transitions[stateIdle].push_back({stateLocomotion, std::make_shared<fsm::IdleToLocomotionTransition>(permanentCcPtr)});
             transitions[stateIdle].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
-            transitions[stateIdle].push_back({statePunch, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr)});
+            transitions[stateIdle].push_back({stateJab, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Jab)});
+            transitions[stateIdle].push_back({stateCross, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Cross)});
+            transitions[stateIdle].push_back({stateHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftHook)});
+            transitions[stateIdle].push_back({stateRightHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::RightHook)});
+            transitions[stateIdle].push_back({stateUppercut, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftUppercut)});
 
             transitions[stateLocomotion].push_back({stateIdle, std::make_shared<fsm::LocomotionToIdleTransition>(permanentCcPtr)});
             transitions[stateLocomotion].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
-            transitions[stateLocomotion].push_back({statePunch, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr)});
+            transitions[stateLocomotion].push_back({stateJab, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Jab)});
+            transitions[stateLocomotion].push_back({stateCross, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Cross)});
+            transitions[stateLocomotion].push_back({stateHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftHook)});
+            transitions[stateLocomotion].push_back({stateRightHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::RightHook)});
+            transitions[stateLocomotion].push_back({stateUppercut, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftUppercut)});
 
             transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
             transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
 
-            transitions[statePunch].push_back({stateLocomotion, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, statePunch)});
-            transitions[statePunch].push_back({stateIdle, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, statePunch)});
+            std::vector<std::shared_ptr<fsm::State>> punchStates = {stateJab, stateCross, stateHook, stateRightHook, stateUppercut};
+            for (const auto& currentPunchState : punchStates) {
+                transitions[currentPunchState].push_back({stateJab, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Jab)});
+                transitions[currentPunchState].push_back({stateCross, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::Cross)});
+                transitions[currentPunchState].push_back({stateHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftHook)});
+                transitions[currentPunchState].push_back({stateRightHook, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::RightHook)});
+                transitions[currentPunchState].push_back({stateUppercut, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, BoxingPunch::LeftUppercut)});
+
+                transitions[currentPunchState].push_back({stateLocomotion, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, currentPunchState)});
+                transitions[currentPunchState].push_back({stateIdle, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, currentPunchState)});
+            }
 
             sharedFSM->Initialize(transitions, stateIdle);
 
-            player = std::make_shared<Player>(grid, entityId);
+            player = std::make_shared<Player>(grid, entityId, ecsManager);
             glfwSetWindowUserPointer(window, player.get());
 
             PhysicsComponent pc(entityId);
@@ -368,6 +406,7 @@ namespace world {
             numEntities++;
         }
 
+
     public:
         World() {
             grid = std::make_shared<voxel::Grid>();
@@ -379,8 +418,9 @@ namespace world {
 
         void initialise(GLFWwindow *window) {
             this->window = window;
-            initialisePlayer({30, 100, 30});
+            initialisePlayer({30, 30, 30});
             initialiseNPC({35, 100, 30});
+
             createVoxels();
             updateTerrainStreaming();
         }

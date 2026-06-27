@@ -6,6 +6,7 @@
 #include "../../scene/components/fsm/AnimationState.h"
 #include "../../scene/components/fsm/AnimationFSM.h"
 #include "../geometry/Transform.h"
+#include "fsm/BoxingPunch.h"
 #include <memory>
 #include <glm/glm.hpp>
 
@@ -26,6 +27,7 @@ namespace scene::components {
         float m_movementScale = 0.12f;
         bool m_wantsToJump = false;
         bool m_wantsToPunch = false;
+        BoxingPunch m_activePunchIntent = BoxingPunch::None;
 
         explicit CharacterControllerComponent(int entityId, Transform* transformPtr, std::shared_ptr<AnimationFSM> animFSM);
         CharacterControllerComponent();
@@ -40,4 +42,4 @@ namespace scene::components {
     };
 }
 
-#endif // QUESTFARERGAMEENGINE_CHARACTERCONTROLLERCOMPONENT_H
+#endif

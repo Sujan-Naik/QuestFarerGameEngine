@@ -104,6 +104,7 @@ add_executable(QuestFarerGameEngine src/main.cpp
         include/scene/components/HealthComponent.h
         src/scene/systems/AttackSystem.cpp
         include/scene/systems/AttackSystem.h
+        include/scene/components/fsm/BoxingPunch.h
 )
 
 add_custom_target(ForceCopyResources

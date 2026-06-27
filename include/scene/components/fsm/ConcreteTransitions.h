@@ -2,8 +2,11 @@
 #define QUESTFARERGAMEENGINE_CONCRETE_TRANSITIONS_H
 
 #include "Transition.h"
-#include "../ECSManager.h"
+#include "BoxingPunch.h"
 #include <memory>
+#include "../ECSManager.h"
+
+
 
 namespace scene::components {
     class CharacterControllerComponent;
@@ -47,13 +50,13 @@ namespace scene::components::fsm {
         bool ShouldTransition() override;
     };
 
-
     class AnyToPunchTransition : public Transition {
     private:
         CharacterControllerComponent* m_controller;
+        BoxingPunch m_targetPunch;
     public:
-        explicit AnyToPunchTransition(CharacterControllerComponent* ctrl);
-        bool ShouldTransition() override; // Checks if the punch input/key was pressed
+        AnyToPunchTransition(CharacterControllerComponent* ctrl, BoxingPunch targetPunch);
+        bool ShouldTransition() override;
     };
 
     class PunchToFallbackTransition : public Transition {
@@ -62,7 +65,7 @@ namespace scene::components::fsm {
         std::shared_ptr<State> m_punchState;
     public:
         PunchToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> punchState);
-        bool ShouldTransition() override; // Checks if the jab animation clip finished playing
+        bool ShouldTransition() override;
     };
 }
 

@@ -1,11 +1,12 @@
 #include <utility>
 #include <iostream>
 #include "../../include/player/Player.h"
+#include "../../include/scene/components/ECSManager.h"
 
 using namespace player;
 
-Player::Player(std::shared_ptr<Grid> gridPtr, int entityId)
-        : grid(std::move(gridPtr)), avatarEntityId(entityId) {}
+Player::Player(std::shared_ptr<Grid> gridPtr, int entityId, std::shared_ptr<scene::components::ECSManager> newEcsManager)
+        : grid(std::move(gridPtr)), avatarEntityId(entityId), ecsManager(newEcsManager) {}
 
 const rendering::RenderContext Player::getRenderContext() const {
     const glm::mat4 view       = camera->getViewMatrix();
@@ -25,17 +26,6 @@ void Player::updateCamera(scene::components::ECSManager& ecs){
         camera->setPosition(newCameraPosition);
     }
 }
-//void Player::updateCamera(scene::components::ECSManager& ecs){
-//    auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
-//    if (avatar && avatar->transform){
-//
-//        glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw() + 90 ), glm::vec3(0.0f, 1.0f, 0.0f));
-//        avatar->transform->rotation = yawRotation;
-//
-//        glm::vec3 offset = (avatar->transform->getRight() * 10.0f );
-//        camera->setPosition( avatar->transform->getTop() + offset);
-//    }
-//}
 
 glm::vec3 Player::getPosition(scene::components::ECSManager& ecs) {
     auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
@@ -62,9 +52,7 @@ void Player::processInput(GLFWwindow* window, double timeScale, scene::component
         liveAvatar->m_wantsToJump = true;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS) {
-        liveAvatar->m_wantsToPunch = true;
-    }
+    bool shiftPressed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
 
     float forwardInput = 0.0f;
     float strafeInput  = 0.0f;
@@ -74,7 +62,7 @@ void Player::processInput(GLFWwindow* window, double timeScale, scene::component
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) strafeInput  += 1.0f;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) strafeInput  -= 1.0f;
 
-    bool isSprinting = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+    bool isSprinting = shiftPressed && (liveAvatar->m_activePunchIntent == BoxingPunch::None);
 
     if (forwardInput != 0.0f || strafeInput != 0.0f) {
         float forwardMagnitude = forwardInput * (isSprinting ? 1.0f : 0.5f);
@@ -91,7 +79,9 @@ void Player::processInput(GLFWwindow* window, double timeScale, scene::component
 void Player::mouse_callback(GLFWwindow* window, double xpos, double ypos)
 {
     Player* player = static_cast<Player*>(glfwGetWindowUserPointer(window));
-    if (player && !player->cursorEnabled)
+    if (!player) return;
+
+    if (!player->cursorEnabled)
     {
         player->processMouseMovement(static_cast<float>(xpos), static_cast<float>(ypos));
     }
@@ -119,7 +109,36 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
         {
             player->cursorEnabled = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            return;
         }
+    }
+
+    if (player->cursorEnabled) return;
+
+    auto* liveAvatar = player->ecsManager->getCharacterControllerComponent(player->getAvatarId());
+    if (!liveAvatar || liveAvatar->getEntityId() == -1) return;
+
+    bool shiftPressed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
+    bool holdQ = (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS);
+    bool holdE = (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS);
+
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        if (shiftPressed) {
+            liveAvatar->m_activePunchIntent = BoxingPunch::LeftUppercut;
+        } else if (holdQ) {
+            liveAvatar->m_activePunchIntent = BoxingPunch::LeftHook;
+        } else {
+            liveAvatar->m_activePunchIntent = BoxingPunch::Jab;
+        }
+        liveAvatar->m_wantsToPunch = true;
+    }
+    else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        if (holdE) {
+            liveAvatar->m_activePunchIntent = BoxingPunch::RightHook;
+        } else {
+            liveAvatar->m_activePunchIntent = BoxingPunch::Cross;
+        }
+        liveAvatar->m_wantsToPunch = true;
     }
 }
 
