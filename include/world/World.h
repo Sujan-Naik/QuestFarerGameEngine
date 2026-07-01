@@ -167,7 +167,7 @@ namespace world {
 
         void initialisePlayer(glm::vec3 pos) {
             animation::AnimationAssetLibrary playerAssets;
-            playerAssets.loadFromFBX("resources/objects/humanoid/character2.fbx");
+            playerAssets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
             if (!playerAssets.model) return;
 
             auto ourShader = std::make_unique<Shader>(
@@ -219,7 +219,7 @@ namespace world {
             auto crossAnimState = std::make_shared<AnimationState>(std::move(crossClip));
             crossAnimState->rootBoneNames = {"B-root"};
 
-            auto hookClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Hook"));
+            auto hookClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@LeftHook"));
             auto hookAnimState = std::make_shared<AnimationState>(std::move(hookClip));
             hookAnimState->rootBoneNames = {"B-root"};
 
@@ -227,7 +227,7 @@ namespace world {
             auto rightHookAnimState = std::make_shared<AnimationState>(std::move(rightHookClip));
             rightHookAnimState->rootBoneNames = {"B-root"};
 
-            auto uppercutClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Uppercut"));
+            auto uppercutClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@LeftUppercut"));
             auto uppercutAnimState = std::make_shared<AnimationState>(std::move(uppercutClip));
             uppercutAnimState->rootBoneNames = {"B-root"};
 
@@ -419,7 +419,7 @@ namespace world {
         void initialise(GLFWwindow *window) {
             this->window = window;
             initialisePlayer({30, 30, 30});
-            initialiseNPC({35, 100, 30});
+//            initialiseNPC({35, 100, 30});
 
             createVoxels();
             updateTerrainStreaming();
