@@ -17,7 +17,6 @@ namespace physics {
                   std::shared_ptr<voxel::Grid> grid, float dt);
 
     private:
-        const glm::vec3 GRAVITY = glm::vec3(0.0f, -18.0f, 0.0f);
         bool IsPositionClear(const glm::vec3 &testPos, const scene::components::PhysicsComponent &comp, std::shared_ptr<voxel::Grid> grid);
         bool TryStepUp(glm::vec3 &pos, const glm::vec3 &remainingMove, const scene::components::PhysicsComponent &comp, std::shared_ptr<voxel::Grid> grid);
         float GetTerrainHeightAtXZ(std::shared_ptr<voxel::Grid> grid, glm::vec3 pos);

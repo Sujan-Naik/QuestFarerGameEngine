@@ -74,6 +74,7 @@ namespace scene::components {
     }
 
     void PhysicsComponent::applyForce(glm::vec3 force) { forceAccumulator += force; }
+    void PhysicsComponent::setKinematicDisplacement(glm::vec3 displacementThisFrame) { kinematicDisplacement = displacementThisFrame; }
     void PhysicsComponent::addVelocity(glm::vec3 vel) { velocity += vel; }
     void PhysicsComponent::integrate(float dt) {
         if (mass <= 0.0f) return;

@@ -15,10 +15,14 @@ namespace scene::components {
         glm::vec3 localMax;
         glm::vec3 currentMin;
         glm::vec3 currentMax;
+
     };
 
     class PhysicsComponent : public Component {
     public:
+        glm::vec3 kinematicDisplacement;
+
+
         glm::vec3 localTotalMin{0.0f};
         glm::vec3 localTotalMax{0.0f};
 
@@ -26,7 +30,7 @@ namespace scene::components {
 
         glm::vec3 velocity{0.0f};
         glm::vec3 forceAccumulator{0.0f};
-        float mass = 1.0f;
+        float mass = 100.0f;
         float dragCoefficient = 0.99f;
         float frictionCoefficient = 0.01f;
         bool onGround = false;
@@ -40,6 +44,8 @@ namespace scene::components {
         void applyForce(glm::vec3 force);
         void addVelocity(glm::vec3 vel);
         void integrate(float dt);
+
+        void setKinematicDisplacement(glm::vec3 displacementThisFrame);
     };
 }
 

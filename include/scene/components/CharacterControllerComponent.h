@@ -27,7 +27,6 @@ namespace scene::components {
 
         float m_currentSpeedFactor = 0.0f;
         glm::vec2 m_currentDirection{0.0f};
-        float m_movementScale = 0.12f;
 
         BoxingPunch m_activePunchIntent = BoxingPunch::None;
 

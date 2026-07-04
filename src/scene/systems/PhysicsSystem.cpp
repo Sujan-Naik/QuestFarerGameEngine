@@ -109,7 +109,6 @@ namespace physics {
                 if (!boneMatrices.empty()) {
                     comp.localTotalMin = glm::vec3(1e10f);
                     comp.localTotalMax = glm::vec3(-1e10f);
-                    const float modelScale = 0.01f;
 
                     for (auto& hb : comp.hitboxes) {
                         if (hb.boneIndex >= (int)boneMatrices.size()) continue;
@@ -130,7 +129,7 @@ namespace physics {
                         hb.currentMax = glm::vec3(-1e10f);
 
                         for (auto& c : corners) {
-                            c *= modelScale;
+                            c *= MODEL_SCALE;
                             hb.currentMin = glm::min(hb.currentMin, c);
                             hb.currentMax = glm::max(hb.currentMax, c);
                         }
@@ -146,7 +145,8 @@ namespace physics {
 
 
 
-            glm::vec3 vectorToMove = comp.velocity * dt;
+            glm::vec3 vectorToMove = comp.velocity * dt + comp.kinematicDisplacement;
+            comp.setKinematicDisplacement({0,0,0});
             glm::vec3 proposedPos = oldPos + vectorToMove;
             auto modelAnimation = comp.model;
             modelAnimation->ClearFootAdjustments();

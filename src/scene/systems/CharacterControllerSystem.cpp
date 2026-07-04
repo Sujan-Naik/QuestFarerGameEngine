@@ -39,8 +39,9 @@ namespace scene::components {
             if (ctrl.skeleton) {
                 ctrl.skeleton->SetFinalBoneMatrices(ctrl.fsm->GetOutput().finalBoneMatrices);
             }
+
             if (physics) {
-                physics->addVelocity(worldDelta * ctrl.m_movementScale);
+                physics->setKinematicDisplacement(worldDelta * MODEL_SCALE);
             }
         }
     }
