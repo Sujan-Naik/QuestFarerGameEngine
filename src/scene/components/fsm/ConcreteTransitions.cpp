@@ -22,10 +22,9 @@ namespace scene::components::fsm {
             : m_controller(ctrl), m_ecs(ecs) {}
 
     bool AnyToJumpTransition::ShouldTransition() {
-        if (m_controller->m_wantsToJump) {
+        if (m_controller->getWantsToJump()) {
             PhysicsComponent* physics = m_ecs.getPhysicsComponent(m_controller->getEntityId());
             if (physics && physics->onGround) {
-                m_controller->m_wantsToJump = false;
                 return true;
             }
         }
@@ -36,6 +35,11 @@ namespace scene::components::fsm {
             : m_controller(ctrl), m_jumpState(jumpState) {}
 
     bool JumpToFallbackTransition::ShouldTransition() {
+        if (m_jumpState->IsComplete()){
+            m_controller->clearJump();
+        }
+
+
         return m_jumpState->IsComplete();
     }
 
@@ -43,8 +47,8 @@ namespace scene::components::fsm {
             : m_controller(ctrl), m_targetPunch(targetPunch) {}
 
     bool AnyToPunchTransition::ShouldTransition() {
-        if (m_controller && m_controller->m_wantsToPunch && m_controller->m_activePunchIntent == m_targetPunch) {
-            m_controller->m_wantsToPunch = false;
+        if (m_controller && m_controller->getWantsToPunch() && m_controller->m_activePunchIntent == m_targetPunch) {
+            m_controller->clearPunch();
             return true;
         }
         return false;

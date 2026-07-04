@@ -28,7 +28,7 @@ namespace scene::components {
         glm::vec3 forceAccumulator{0.0f};
         float mass = 1.0f;
         float dragCoefficient = 0.99f;
-        float frictionCoefficient = 0.999f;
+        float frictionCoefficient = 0.01f;
         bool onGround = false;
 
         std::vector<BoneHitbox> hitboxes;

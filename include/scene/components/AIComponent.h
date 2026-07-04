@@ -14,6 +14,7 @@ namespace scene::components {
         int currentPathIndex = 0;
         float decisionTimer = 0.0f;
         float speed = 0.5f;
+        int targetEntityId = -1;
 
         explicit AIComponent(int entityId);
         AIComponent();

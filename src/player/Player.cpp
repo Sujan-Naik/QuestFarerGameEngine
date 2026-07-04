@@ -49,7 +49,7 @@ void Player::processInput(GLFWwindow* window, double timeScale, scene::component
     if (!liveAvatar || liveAvatar->getEntityId() == -1) return;
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        liveAvatar->m_wantsToJump = true;
+        liveAvatar->triggerJump();
     }
 
     bool shiftPressed = (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS);
@@ -130,7 +130,7 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
         } else {
             liveAvatar->m_activePunchIntent = BoxingPunch::Jab;
         }
-        liveAvatar->m_wantsToPunch = true;
+        liveAvatar->triggerPunch();
     }
     else if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         if (holdE) {
@@ -138,7 +138,7 @@ void Player::mouse_button_callback(GLFWwindow* window, int button, int action, i
         } else {
             liveAvatar->m_activePunchIntent = BoxingPunch::Cross;
         }
-        liveAvatar->m_wantsToPunch = true;
+        liveAvatar->triggerPunch();
     }
 }
 

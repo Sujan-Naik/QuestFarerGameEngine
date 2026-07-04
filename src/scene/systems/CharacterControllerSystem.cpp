@@ -50,13 +50,6 @@ namespace scene::components {
         ctrl.m_currentDirection = glm::vec2(strafe, forward);
     }
 
-    void CharacterControllerSystem::triggerJump(ECSManager& ecs, CharacterControllerComponent& ctrl) {
-        ctrl.m_wantsToJump = true;
-    }
-
-    void CharacterControllerSystem::triggerPunch(ECSManager& ecs, CharacterControllerComponent& ctrl) {
-        ctrl.m_wantsToPunch = true;
-    }
 
     void CharacterControllerSystem::receiveMessage(CharacterControllerComponent& ctrl, int message) {
         switch (message) {

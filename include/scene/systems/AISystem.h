@@ -6,8 +6,7 @@
 #include "../components/ECSManager.h"
 #include <glm/glm.hpp>
 #include <vector>
-#include <queue>
-#include <unordered_map>
+#include <memory>
 
 namespace scene::components {
 
@@ -17,15 +16,6 @@ namespace scene::components {
         void updateAI(ECSManager& ecs, std::shared_ptr<voxel::Grid> grid, float dt);
 
     private:
-        struct Node {
-            glm::ivec3 pos;
-            float gCost;
-            float hCost;
-            glm::ivec3 parent;
-            float fCost() const { return gCost + hCost; }
-            bool operator>(const Node& other) const { return fCost() > other.fCost(); }
-        };
-
         struct IntVec3Hash {
             std::size_t operator()(const glm::ivec3& v) const {
                 return (v.x * 73856093) ^ (v.y * 19349663) ^ (v.z * 83492791);

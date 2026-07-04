@@ -3,6 +3,7 @@
 #include "../../../include/globals.h"
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 namespace physics {
 
@@ -10,7 +11,6 @@ namespace physics {
     constexpr float SLIDING_THRESHOLD = 0.0001f;
 
     void PhysicsSystem::update(scene::components::ECSManager& ecs, float dt) {
-        // gameObjects array needs to be exposed or passed from the system executor context
     }
 
     bool PhysicsSystem::IsFaceExposed(int x, int y, int z, const glm::vec3 &normal, std::shared_ptr<voxel::Grid> grid) {
@@ -20,10 +20,10 @@ namespace physics {
 
         if (ny < 0 || ny >= 256) return true;
 
-        auto it = grid->chunks.find({nx >> 4, nz >> 4});
-        if (it == grid->chunks.end()) return true;
+        auto chunk = grid->GetChunk(nx >> 4, nz >> 4);
+        if (!chunk) return true;
 
-        return it->second->GetVoxel(nx & 15, ny, nz & 15) == voxel::VoxelType::AIR;
+        return chunk->GetVoxel(nx & 15, ny, nz & 15) == voxel::VoxelType::AIR;
     }
 
     bool PhysicsSystem::IsPositionClear(const glm::vec3 &testPos, const scene::components::PhysicsComponent &comp,
@@ -41,11 +41,8 @@ namespace physics {
 
             for (int x = minX; x <= maxX; ++x) {
                 for (int z = minZ; z <= maxZ; ++z) {
-                    auto it = grid->chunks.find({x >> 4, z >> 4});
-                    if (it == grid->chunks.end()) continue;
-
                     for (int y = minY; y <= maxY; ++y) {
-                        if (it->second->GetVoxel(x & 15, y, z & 15) != voxel::VoxelType::AIR) {
+                        if (grid->IsSolid(x, y, z)) {
                             return false;
                         }
                     }
@@ -80,12 +77,14 @@ namespace physics {
         int x = static_cast<int>(std::floor(pos.x));
         int z = static_cast<int>(std::floor(pos.z));
 
-        auto it = grid->chunks.find({x >> 4, z >> 4});
-        if (it == grid->chunks.end()) return 0.0f;
+        int cx = (x >= 0) ? x / 16 : (x - 15) / 16;
+        int cz = (z >= 0) ? z / 16 : (z - 15) / 16;
 
-        auto& chunk = it->second;
-        int localX = x & 15;
-        int localZ = z & 15;
+        auto chunk = grid->GetChunk(cx, cz);
+        if (!chunk) return 0.0f;
+
+        int localX = ((x % 16) + 16) % 16;
+        int localZ = ((z % 16) + 16) % 16;
 
         for (int y = Y_CHUNK_SIZE - 1; y >= 0; --y) {
             int idx = chunk->GetIndex(localX, y, localZ);
@@ -143,23 +142,41 @@ namespace physics {
             }
 
             GameObject *obj = gameObjects[comp.getEntityId()].get();
-            glm::vec3 pos = obj->getPosition();
-            float friction = std::exp(-comp.frictionCoefficient * dt);
-            comp.velocity *= glm::vec3(friction, 1, friction);
+            glm::vec3 oldPos = obj->getPosition();
+
+
 
             glm::vec3 vectorToMove = comp.velocity * dt;
-            glm::vec3 proposedPos = pos + vectorToMove;
+            glm::vec3 proposedPos = oldPos + vectorToMove;
             auto modelAnimation = comp.model;
             modelAnimation->ClearFootAdjustments();
 
-            if (!IsPositionClear(proposedPos, comp, grid)) {
-                comp.onGround = true;
-                comp.velocity.y = 0;
+            comp.onGround = false;
 
-                if (!TryStepUp(proposedPos, vectorToMove, comp, grid)) {
-                    proposedPos = pos;
+            if (!IsPositionClear(proposedPos, comp, grid)) {
+                if (TryStepUp(proposedPos, vectorToMove, comp, grid)) {
+                    comp.onGround = true;
+                    comp.velocity.y = 0.0f;
+                } else {
+                    glm::vec3 verticalTestPos = oldPos + glm::vec3(0.0f, vectorToMove.y, 0.0f);
+                    if (!IsPositionClear(verticalTestPos, comp, grid) && vectorToMove.y <= 0.0f) {
+                        comp.onGround = true;
+                        comp.velocity.y = 0.0f;
+                    }
+
+                    proposedPos = oldPos;
+                    if (!comp.onGround) {
+                        comp.velocity.x = 0.0f;
+                        comp.velocity.z = 0.0f;
+                        if (vectorToMove.y > 0.0f) {
+                            comp.velocity.y = 0.0f;
+                        }
+                    }
                 }
-            } else {
+            }
+
+            if (!comp.onGround) {
+//                std::cout << "[Physics] Entity ID: " << comp.getEntityId() << " is NOT on the ground!\n";
                 comp.velocity.y += GRAVITY.y * dt;
                 if (comp.velocity.y < -TERMINAL_VELOCITY) comp.velocity.y = -TERMINAL_VELOCITY;
             }
@@ -177,7 +194,7 @@ namespace physics {
             );
 
             if (feetWouldBlock) {
-                proposedPos = pos;
+                proposedPos = oldPos;
                 comp.velocity.y = 0;
                 proposedModelMatrix = obj->getModelMatrix();
                 proposedModelMatrix[3] = glm::vec4(proposedPos, 1.0f);
@@ -194,6 +211,12 @@ namespace physics {
 
             modelAnimation->SetFootAdjustments(adjustedBones);
             obj->setPosition(proposedPos);
+//            if (comp.onGround){
+                float friction = std::pow(comp.frictionCoefficient, dt * 60.0f);
+                comp.velocity *= glm::vec3(friction, 1.0f, friction);
+//            }
+
+            grid->UpdateEntitySpatialPosition(comp.getEntityId(), oldPos, proposedPos);
         }
     }
 }
