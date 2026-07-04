@@ -25,18 +25,23 @@ namespace scene::components::fsm {
         if (m_controller->getWantsToJump()) {
             PhysicsComponent* physics = m_ecs.getPhysicsComponent(m_controller->getEntityId());
             if (physics && physics->onGround) {
+                physics->setGravity(false);
                 return true;
             }
         }
         return false;
     }
 
-    JumpToFallbackTransition::JumpToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> jumpState)
-            : m_controller(ctrl), m_jumpState(jumpState) {}
+    JumpToFallbackTransition::JumpToFallbackTransition( CharacterControllerComponent* ctrl, ECSManager& ecs,  std::shared_ptr<State> jumpState)
+            : m_controller(ctrl), m_ecs(ecs), m_jumpState(jumpState) {}
 
     bool JumpToFallbackTransition::ShouldTransition() {
         if (m_jumpState->IsComplete()){
+            PhysicsComponent* physics = m_ecs.getPhysicsComponent(m_controller->getEntityId());
+
             m_controller->clearJump();
+            physics->setGravity(true);
+
         }
 
 

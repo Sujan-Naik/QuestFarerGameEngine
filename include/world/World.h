@@ -255,8 +255,8 @@ namespace world {
             transitions[stateLocomotion].push_back({stateIdle, std::make_shared<fsm::LocomotionToIdleTransition>(permanentCcPtr)});
             transitions[stateLocomotion].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
 
-            transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
-            transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, stateJump)});
+            transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, *ecsManager, stateJump)});
+            transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr,*ecsManager, stateJump)});
 
             // Player Specific Combat States & Transitions
             if (isPlayer) {

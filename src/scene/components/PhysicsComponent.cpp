@@ -81,4 +81,12 @@ namespace scene::components {
         velocity += (forceAccumulator / mass) * dt;
         forceAccumulator = glm::vec3(0.0f);
     }
+
+    bool PhysicsComponent::hasGravity() const {
+        return gravityEnabled;
+    }
+
+    void PhysicsComponent::setGravity(bool newGravity) {
+        PhysicsComponent::gravityEnabled = newGravity;
+    }
 }

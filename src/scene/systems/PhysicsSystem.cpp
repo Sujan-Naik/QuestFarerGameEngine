@@ -175,7 +175,7 @@ namespace physics {
                 }
             }
 
-            if (!comp.onGround) {
+            if (!comp.onGround && comp.hasGravity()) {
 //                std::cout << "[Physics] Entity ID: " << comp.getEntityId() << " is NOT on the ground!\n";
                 comp.velocity.y += GRAVITY.y * dt;
                 if (comp.velocity.y < -TERMINAL_VELOCITY) comp.velocity.y = -TERMINAL_VELOCITY;

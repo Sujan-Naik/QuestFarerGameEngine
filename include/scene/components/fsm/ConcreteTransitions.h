@@ -44,9 +44,10 @@ namespace scene::components::fsm {
     class JumpToFallbackTransition : public Transition {
     private:
         CharacterControllerComponent* m_controller;
+        ECSManager& m_ecs;
         std::shared_ptr<State> m_jumpState;
     public:
-        JumpToFallbackTransition(CharacterControllerComponent* ctrl, std::shared_ptr<State> jumpState);
+        JumpToFallbackTransition( CharacterControllerComponent* ctrl, ECSManager& m_ecs, std::shared_ptr<State> jumpState);
         bool ShouldTransition() override;
     };
 

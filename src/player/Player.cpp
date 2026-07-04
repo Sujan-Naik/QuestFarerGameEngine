@@ -22,8 +22,10 @@ void Player::updateCamera(scene::components::ECSManager& ecs){
 
         glm::vec3 offset = (avatar->transform->getBack() * glm::vec3(2, 2, 2) + avatar->transform->getUp() * glm::vec3(0, 0.1f, 0)) *
                            avatar->transform->getSize().x;
+
         glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->transform->getTop() + offset, 0.2f);
-        camera->setPosition(newCameraPosition);
+//        camera->setPosition(newCameraPosition);
+        camera->setPosition(avatar->transform->getTop() + offset);
     }
 }
 

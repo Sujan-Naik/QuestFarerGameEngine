@@ -19,6 +19,8 @@ namespace scene::components {
     };
 
     class PhysicsComponent : public Component {
+
+        bool gravityEnabled = true;
     public:
         glm::vec3 kinematicDisplacement;
 
@@ -39,6 +41,10 @@ namespace scene::components {
 
         explicit PhysicsComponent(int entityId);
         PhysicsComponent();
+
+        bool hasGravity() const;
+
+        void setGravity(bool newGravity);
 
         void addModel(std::shared_ptr<ModelAnimation> mod);
         void applyForce(glm::vec3 force);
