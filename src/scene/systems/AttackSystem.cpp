@@ -141,15 +141,15 @@ namespace scene::components {
                     victimHealth.currentHealth -= 25.0f;
                     attack.entitiesAlreadyHit.insert(victimId);
 
-//                    std::cout << "[COLLISION REGISTERED]\n"
-//                              << "  -> Attacker ID:   " << attackerId << " (" << actualBoneName << ")\n"
-//                              << "  -> Victim ID:     " << victimId << " (Hit Bone Index: " << hitBoneIndex << ")\n"
-//                              << "  -> Sweep Vector:  From (" << previousHandPos.x << ", " << previousHandPos.y << ", " << previousHandPos.z << ")\n"
-//                              << "                    To   (" << currentHandPos.x << ", " << currentHandPos.y << ", " << currentHandPos.z << ")\n"
-//                              << "  -> Sweep Length:  " << segmentLength << " units\n"
-//                              << "  -> Target Box:    Min(" << hitBoxMin.x << ", " << hitBoxMin.y << ", " << hitBoxMin.z << ")\n"
-//                              << "                    Max(" << hitBoxMax.x << ", " << hitBoxMax.y << ", " << hitBoxMax.z << ")\n"
-//                              << "  -> Victim Health: " << victimHealth.currentHealth << "\n" << std::endl;
+                    std::cout << "[COLLISION REGISTERED]\n"
+                              << "  -> Attacker ID:   " << attackerId << " (" << actualBoneName << ")\n"
+                              << "  -> Victim ID:     " << victimId << " (Hit Bone Index: " << hitBoneIndex << ")\n"
+                              << "  -> Sweep Vector:  From (" << previousHandPos.x << ", " << previousHandPos.y << ", " << previousHandPos.z << ")\n"
+                              << "                    To   (" << currentHandPos.x << ", " << currentHandPos.y << ", " << currentHandPos.z << ")\n"
+                              << "  -> Sweep Length:  " << segmentLength << " units\n"
+                              << "  -> Target Box:    Min(" << hitBoxMin.x << ", " << hitBoxMin.y << ", " << hitBoxMin.z << ")\n"
+                              << "                    Max(" << hitBoxMax.x << ", " << hitBoxMax.y << ", " << hitBoxMax.z << ")\n"
+                              << "  -> Victim Health: " << victimHealth.currentHealth << "\n" << std::endl;
 
                     if (victimHealth.currentHealth <= 0.0f) {
                         victimHealth.isDead = true;
@@ -157,7 +157,7 @@ namespace scene::components {
 
                     glm::vec3 pushDirection = glm::normalize(victimWorldPos - ctrl->transform->position);
                     pushDirection.y = 0.0f;
-                    victimPhysics->addVelocity(pushDirection * 15.0f);
+                    victimPhysics->addVelocity(pushDirection * 1000.0f);
                 }
             }
         }
