@@ -24,7 +24,6 @@ namespace animation {
     public:
         Animation() = default;
 
-        // LEGACY CONSTRUCTOR (Keep for your old .dae loading logic)
         Animation(const std::string &animationPath, ModelAnimation *model) {
             Assimp::Importer importer;
             const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
@@ -40,7 +39,6 @@ namespace animation {
             ReadMissingBones(animation, *model);
         }
 
-        // NEW CONSTRUCTOR FOR .GLB / MUSHED FILES
         Animation(const std::string &path, const aiScene* scene, unsigned int animationIndex, ModelAnimation* model) {
             if (!scene || animationIndex >= scene->mNumAnimations) {
                 throw std::runtime_error("Invalid scene or animation index for: " + path);
@@ -54,7 +52,6 @@ namespace animation {
             ReadMissingBones(animation, *model);
         }
 
-        // NEW: Load animation separately (model must be loaded first)
         Animation(const std::string &animationPath, unsigned int animationIndex = 0) {
             Assimp::Importer importer;
             const aiScene *scene = importer.ReadFile(animationPath, aiProcess_Triangulate);
@@ -72,7 +69,6 @@ namespace animation {
             m_TicksPerSecond = animation->mTicksPerSecond;
 
             ReadHierarchyData(m_RootNode, scene->mRootNode);
-            // Store raw animation data without linking to model yet
             ReadBonesWithoutModel(animation);
         }
 
@@ -137,7 +133,6 @@ namespace animation {
             m_BoneInfoMap = boneInfoMap;
         }
 
-        // NEW: Read bones without model reference
         void ReadBonesWithoutModel(const aiAnimation *animation) {
             int size = animation->mNumChannels;
             int tempBoneCounter = 0;
@@ -148,7 +143,6 @@ namespace animation {
                 if (boneName == "root") {
                     std::cout << "FOUND ROOT NODE - Channel Index: " << i << std::endl;
                 }
-                // Assign temporary IDs; these will be remapped when linking to model
                 m_Bones.push_back(Bone(boneName, tempBoneCounter, channel));
                 m_BoneInfoMap[boneName].id = tempBoneCounter;
                 tempBoneCounter++;

@@ -4,7 +4,6 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include <memory>
-#include <string>
 #include "Component.h"
 #include "../../rendering/model/ModelAnimation.h"
 
@@ -14,13 +13,18 @@ namespace scene::components {
         int boneIndex;
         glm::vec3 localMin;
         glm::vec3 localMax;
-        glm::vec3 currentMin; // World-aligned AABB min for this bone
-        glm::vec3 currentMax; // World-aligned AABB max for this bone
+        glm::vec3 currentMin;
+        glm::vec3 currentMax;
+
     };
 
     class PhysicsComponent : public Component {
+
+        bool gravityEnabled = true;
     public:
-        // Broadphase bounds (encapsulates all bones)
+        glm::vec3 kinematicDisplacement;
+
+
         glm::vec3 localTotalMin{0.0f};
         glm::vec3 localTotalMax{0.0f};
 
@@ -28,9 +32,9 @@ namespace scene::components {
 
         glm::vec3 velocity{0.0f};
         glm::vec3 forceAccumulator{0.0f};
-        float mass = 1.0f;
+        float mass = 100.0f;
         float dragCoefficient = 0.99f;
-        float frictionCoefficient = 0.999f;
+        float frictionCoefficient = 0.01f;
         bool onGround = false;
 
         std::vector<BoneHitbox> hitboxes;
@@ -38,14 +42,16 @@ namespace scene::components {
         explicit PhysicsComponent(int entityId);
         PhysicsComponent();
 
-        void receive(int message) override;
-        void update() override;
-        void addModel(std::shared_ptr<ModelAnimation> mod);
+        bool hasGravity() const;
 
-        // Utilities
+        void setGravity(bool newGravity);
+
+        void addModel(std::shared_ptr<ModelAnimation> mod);
         void applyForce(glm::vec3 force);
         void addVelocity(glm::vec3 vel);
         void integrate(float dt);
+
+        void setKinematicDisplacement(glm::vec3 displacementThisFrame);
     };
 }
 

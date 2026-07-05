@@ -13,13 +13,11 @@ using namespace rendering::mesh;
 
 namespace animation {
     struct AnimationAssetLibrary {
-        // The primary model (Mesh, Physics, and Bone structure)
+
         std::shared_ptr<ModelAnimation> model;
 
-        // Storage to keep all loaded scenes alive in memory
         std::vector<std::shared_ptr<ModelAnimation>> sourceFiles;
 
-        // Global map of all animations across all loaded files
         std::map<std::string, std::shared_ptr<Animation>> animations;
 
         void loadFromGLB(const std::string &path) {
@@ -40,7 +38,6 @@ namespace animation {
             for (unsigned int i = 0; i < scene->mNumAnimations; i++) {
                 auto anim = std::make_shared<Animation>(path, scene, i, model.get());
 
-                // Link the animation's bones to the primary model immediately
                 anim->LinkBonesWithModel(*model);
 
                 std::string animName = scene->mAnimations[i]->mName.C_Str();
@@ -70,10 +67,8 @@ namespace animation {
             for (unsigned int i = 0; i < scene->mNumAnimations; i++) {
                 auto anim = std::make_shared<Animation>(path, scene, i, model.get());
 
-                // Link the animation's bones to the primary model immediately
                 anim->LinkBonesWithModel(*model);
 
-                // Convert from FBX RHS (-Y forward) to LHS (Z forward)
                 anim->ApplyCoordinateSystemConversion();
 
                 animations[animationName] = anim;
@@ -101,7 +96,6 @@ namespace animation {
 
             const aiScene *scene = newSource->GetScene();
 
-            // Debug: Check for mesh
             if (scene->mNumMeshes == 0) {
                 std::cerr << "[WARNING] No meshes found in FBX: " << path << std::endl;
             } else {
@@ -113,10 +107,15 @@ namespace animation {
 
                 anim->LinkBonesWithModel(*model);
 
-//                anim->ApplyCoordinateSystemConversion();
-
                 // Pull animation name and strip .001, .002, etc.
                 std::string animName = scene->mAnimations[i]->mName.C_Str();
+
+                // --- NEW: Remove "Armature|" prefix ---
+                std::string prefix = "Armature|";
+                if (animName.rfind(prefix, 0) == 0) { // Checks if animName starts with "Armature|"
+                    animName = animName.substr(prefix.length());
+                }
+                // --------------------------------------
 
                 // Remove trailing .00X pattern
                 size_t dotPos = animName.rfind('.');

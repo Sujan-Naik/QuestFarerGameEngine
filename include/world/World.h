@@ -3,7 +3,9 @@
 
 #include "../scene/objects/GameObject.h"
 #include "../voxel/Grid.h"
-#include "../physics/PhysicsSystem.h"
+#include "../scene/systems/PhysicsSystem.h"
+#include "../scene/systems/CharacterControllerSystem.h"
+#include "../scene/systems/AISystem.h"
 #include "../player/Player.h"
 #include "../rendering/LightingRenderer.h"
 #include "../scene/components/PhysicsComponent.h"
@@ -14,6 +16,9 @@
 #include "../scene/components/ECSManager.h"
 #include "../animation/AnimationAssetLibrary.h"
 #include "ProceduralTerrainGenerator.h"
+#include "../scene/components/fsm/ConcreteStates.h"
+#include "../scene/components/fsm/ConcreteTransitions.h"
+#include "../scene/systems/AttackSystem.h"
 #include <set>
 #include <future>
 #include <queue>
@@ -29,6 +34,9 @@ namespace world {
     private:
         std::shared_ptr<voxel::Grid> grid = std::make_shared<voxel::Grid>();
         std::shared_ptr<PhysicsSystem> physicsSystem = std::make_shared<PhysicsSystem>();
+        std::shared_ptr<CharacterControllerSystem> characterControllerSystem = std::make_shared<CharacterControllerSystem>();
+        std::shared_ptr<AISystem> aiSystem = std::make_shared<AISystem>();
+        std::shared_ptr<AttackSystem> attackSystem = std::make_shared<AttackSystem>();
         std::shared_ptr<Player> player;
         std::unique_ptr<LightingRenderer> lighting;
         std::shared_ptr<Logger> logger = std::make_shared<Logger>("world_log.txt");
@@ -90,7 +98,30 @@ namespace world {
                 auto& fut = generationFutures.front();
                 if (fut.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
                     PendingChunk result = fut.get();
-                    grid->chunks[glm::ivec2(result.pos.x, result.pos.z)] = std::move(result.chunkData);
+
+                    glm::ivec2 chunkPos2D(result.pos.x, result.pos.z);
+                    grid->chunks[chunkPos2D] = std::move(result.chunkData);
+
+                    int physicsCount = ecsManager->getPhysicsComponentsAmount();
+                    const auto* physicsComponents = ecsManager->getPhysicsComponentsDense();
+
+                    for (int e = 0; e < physicsCount; ++e) {
+                        const auto& comp = physicsComponents[e];
+                        if (comp.getEntityId() == -1) continue;
+
+                        GameObject* obj = gameObjects[comp.getEntityId()].get();
+                        if (!obj) continue;
+
+                        glm::vec3 pos = obj->getPosition();
+                        glm::ivec2 entityChunk = glm::ivec2(
+                                static_cast<int>(std::floor(pos.x)) >> 4,
+                                static_cast<int>(std::floor(pos.z)) >> 4
+                        );
+
+                        if (entityChunk == chunkPos2D) {
+                            grid->AddEntityToChunk(comp.getEntityId(), chunkPos2D);
+                        }
+                    }
 
                     if (voxelRendererPtr && !result.vertices.empty()) {
                         voxelRendererPtr->uploadManualMesh(result.pos.x, result.pos.z, result.vertices, result.indices);
@@ -105,7 +136,7 @@ namespace world {
                 }
             }
 
-            glm::vec3 pPos = player->getPosition();
+            glm::vec3 pPos = player->getPosition(*ecsManager);
             int pChunkX = static_cast<int>(pPos.x) >> 4;
             int pChunkZ = static_cast<int>(pPos.z) >> 4;
 
@@ -157,85 +188,163 @@ namespace world {
             }
         }
 
-        void initialisePlayer(glm::vec3 pos) {
-            animation::AnimationAssetLibrary playerAssets;
-            playerAssets.loadFromFBX("resources/objects/humanoid/character.fbx");
-            if (!playerAssets.model) return;
+        int createBaseHumanoid(glm::vec3 pos, bool isPlayer) {
+            animation::AnimationAssetLibrary assets;
+            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
+            if (!assets.model) return -1;
 
             auto ourShader = std::make_unique<Shader>(
                     "../shader/vertex/anim_model.vs",
                     "../shader/fragment/anim_model.fs"
             );
 
-            auto characterTransform = Transform{playerAssets.model->getMeshVerticesCollapsed()};
+            auto characterTransform = Transform{assets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
             characterTransform.scale = {0.05f, 0.05f, 0.05f};
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
 
-            auto idleClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Idle01"));
-            auto idleState = std::make_shared<AnimationState>(std::move(idleClip));
-            idleState->rootBoneNames = {"B-root"};
+            // States common to both
+            auto idleAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Idle01")));
+            idleAnimState->rootBoneNames = {"B-root"};
 
             auto multiDirectionalTree = std::make_unique<DirectionalBlendTree2D>();
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_Forward [RM]")),      glm::vec2(0.0f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_Forward [RM]")),       glm::vec2(0.0f, 1.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_Backward [RM]")),     glm::vec2(0.0f, -0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_Backward [RM]")),      glm::vec2(0.0f, -1.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_Left [RM]")),         glm::vec2(-0.5f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_Left [RM]")),          glm::vec2(-1.0f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_Right [RM]")),        glm::vec2(0.5f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_Right [RM]")),         glm::vec2(1.0f, 0.0f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_ForwardLeft [RM]")),  glm::vec2(-0.5f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_ForwardRight [RM]")), glm::vec2(0.5f, 0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_BackwardLeft [RM]")), glm::vec2(-0.5f, -0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Walk01_BackwardRight [RM]")),glm::vec2(0.5f, -0.5f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_ForwardLeft [RM]")),   glm::vec2(-0.707f, 0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_ForwardRight [RM]")),  glm::vec2(0.707f, 0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_BackwardLeft [RM]")),  glm::vec2(-0.707f, -0.707f));
+            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(assets.get("HumanM@Run01_BackwardRight [RM]")), glm::vec2(0.707f, -0.707f));
 
-            // Forward Nodes
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Forward [RM]")),      glm::vec2(0.0f, 0.5f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Forward [RM]")),       glm::vec2(0.0f, 1.0f));
+            auto locAnimState = std::make_shared<AnimationState>(std::move(multiDirectionalTree));
+            locAnimState->rootBoneNames = {"B-root"};
 
-            // Backward Nodes
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Backward [RM]")),     glm::vec2(0.0f, -0.5f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Backward [RM]")),      glm::vec2(0.0f, -1.0f));
-
-            // Strafe Nodes (Left / Right)
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Left [RM]")),         glm::vec2(-0.5f, 0.0f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Left [RM]")),          glm::vec2(-1.0f, 0.0f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_Right [RM]")),        glm::vec2(0.5f, 0.0f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_Right [RM]")),         glm::vec2(1.0f, 0.0f));
-
-            // Diagonal Walk Nodes (Inner Ring - Magnitude 0.707)
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_ForwardLeft [RM]")),  glm::vec2(-0.5f, 0.5f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_ForwardRight [RM]")), glm::vec2(0.5f, 0.5f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_BackwardLeft [RM]")), glm::vec2(-0.5f, -0.5f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Walk01_BackwardRight [RM]")),glm::vec2(0.5f, -0.5f));
-
-            // Diagonal Run Nodes (Outer Ring - Magnitude ~1.0 Normalized)
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_ForwardLeft [RM]")),   glm::vec2(-0.707f, 0.707f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_ForwardRight [RM]")),  glm::vec2(0.707f, 0.707f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_BackwardLeft [RM]")),  glm::vec2(-0.707f, -0.707f));
-            multiDirectionalTree->AddNode(std::make_unique<ClipNode>(playerAssets.get("HumanM@Run01_BackwardRight [RM]")), glm::vec2(0.707f, -0.707f));
-
-            auto locState = std::make_shared<AnimationState>(std::move(multiDirectionalTree));
-            locState->rootBoneNames = {"B-root"};
-
-            auto jumpClip = std::make_unique<ClipNode>(playerAssets.get("HumanM@Jump01 [RM]"));
-            auto jumpState = std::make_shared<AnimationState>(std::move(jumpClip));
-            jumpState->rootBoneNames = {"B-root"};
-
-            sharedFSM->RegisterState("Idle", idleState);
-            sharedFSM->RegisterState("Locomotion", locState);
-            sharedFSM->RegisterState("Jump", jumpState);
-            sharedFSM->TransitionTo("Idle");
+            auto jumpAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Jump01 [RM]")));
+            jumpAnimState->rootBoneNames = {"B-root"};
 
             gameObjects[entityId] = std::make_unique<AnimationModelObject>(
-                    entityId, playerAssets.model, std::move(ourShader), characterTransform, sharedFSM
+                    entityId, assets.model, std::move(ourShader), characterTransform, sharedFSM
             );
 
             CharacterControllerComponent cc(entityId, &gameObjects[entityId]->transform, sharedFSM);
-            cc.initialize(playerAssets.model);
-            cc.setLocomotionInput(0.0f, 0.0f, false);
-            cc.setECSManager(ecsManager);
+            cc.skeleton = assets.model;
             ecsManager->addCharacterControllerComponent(entityId, cc);
 
-            player = std::make_shared<Player>(grid, &ecsManager->getCharacterControllerComponentFromSparse(entityId));
-            glfwSetWindowUserPointer(window, player.get());
+            CharacterControllerComponent* permanentCcPtr = &ecsManager->getCharacterControllerComponentFromSparse(entityId);
+
+            auto stateIdle = std::make_shared<fsm::IdleState>(permanentCcPtr, idleAnimState);
+            auto stateLocomotion = std::make_shared<fsm::LocomotionState>(permanentCcPtr, locAnimState);
+            auto stateJump = std::make_shared<fsm::JumpState>(permanentCcPtr, jumpAnimState);
+
+            fsm::AnimationFSM::TransitionMap transitions;
+
+            transitions[stateIdle].push_back({stateLocomotion, std::make_shared<fsm::IdleToLocomotionTransition>(permanentCcPtr)});
+            transitions[stateIdle].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
+
+            transitions[stateLocomotion].push_back({stateIdle, std::make_shared<fsm::LocomotionToIdleTransition>(permanentCcPtr)});
+            transitions[stateLocomotion].push_back({stateJump, std::make_shared<fsm::AnyToJumpTransition>(permanentCcPtr, *ecsManager)});
+
+            transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, *ecsManager, stateJump)});
+            transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr,*ecsManager, stateJump)});
+
+            // Player Specific Combat States & Transitions
+            if (isPlayer) {
+                auto jabAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Jab")));
+                jabAnimState->rootBoneNames = {"B-root"};
+                auto crossAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Cross")));
+                crossAnimState->rootBoneNames = {"B-root"};
+                auto hookAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@LeftHook")));
+                hookAnimState->rootBoneNames = {"B-root"};
+                auto rightHookAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@RightHook")));
+                rightHookAnimState->rootBoneNames = {"B-root"};
+                auto uppercutAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@LeftUppercut")));
+                uppercutAnimState->rootBoneNames = {"B-root"};
+
+                auto stateJab = std::make_shared<fsm::PunchState>(permanentCcPtr, jabAnimState);
+                auto stateCross = std::make_shared<fsm::PunchState>(permanentCcPtr, crossAnimState);
+                auto stateHook = std::make_shared<fsm::PunchState>(permanentCcPtr, hookAnimState);
+                auto stateRightHook = std::make_shared<fsm::PunchState>(permanentCcPtr, rightHookAnimState);
+                auto stateUppercut = std::make_shared<fsm::PunchState>(permanentCcPtr, uppercutAnimState);
+
+                std::vector<std::pair<std::shared_ptr<fsm::State>, BoxingPunch>> punchConfigs = {
+                        {stateJab, BoxingPunch::Jab}, {stateCross, BoxingPunch::Cross},
+                        {stateHook, BoxingPunch::LeftHook}, {stateRightHook, BoxingPunch::RightHook},
+                        {stateUppercut, BoxingPunch::LeftUppercut}
+                };
+
+                for (const auto& config : punchConfigs) {
+                    transitions[stateIdle].push_back({config.first, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, config.second)});
+                    transitions[stateLocomotion].push_back({config.first, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, config.second)});
+                }
+
+                std::vector<std::shared_ptr<fsm::State>> punchStates = {stateJab, stateCross, stateHook, stateRightHook, stateUppercut};
+                for (const auto& currentPunchState : punchStates) {
+                    for (const auto& config : punchConfigs) {
+                        transitions[currentPunchState].push_back({config.first, std::make_shared<fsm::AnyToPunchTransition>(permanentCcPtr, config.second)});
+                    }
+                    transitions[currentPunchState].push_back({stateLocomotion, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, currentPunchState)});
+                    transitions[currentPunchState].push_back({stateIdle, std::make_shared<fsm::PunchToFallbackTransition>(permanentCcPtr, currentPunchState)});
+                }
+            }
+
+            sharedFSM->Initialize(transitions, stateIdle);
 
             PhysicsComponent pc(entityId);
-            pc.addModel(playerAssets.model);
+            pc.addModel(assets.model);
             ecsManager->addPhysicsComponent(entityId, pc);
+
+            HealthComponent hc(entityId);
+            hc.currentHealth = 1000.0f;
+            hc.maxHealth = 1000.0f;
+            ecsManager->addHealthComponent(entityId, hc);
+
+            // Player Specific Combat Component
+            if (isPlayer) {
+                AttackComponent atc(entityId);
+                atc.attackRadius = 2.0f;
+                const auto& boneInfoMap = assets.model->GetBoneInfoMap();
+                auto it = boneInfoMap.find("B-hand.L");
+                atc.damagingBoneIndex = (it != boneInfoMap.end()) ? it->second.id : -1;
+                ecsManager->addAttackComponent(entityId, atc);
+            }
+
+            glm::ivec2 spawnChunkCoord = glm::ivec2(
+                    static_cast<int>(std::floor(pos.x)) >> 4,
+                    static_cast<int>(std::floor(pos.z)) >> 4
+            );
+            grid->AddEntityToChunk(entityId, spawnChunkCoord);
+
             numEntities++;
+            return entityId;
         }
+
+        void initialisePlayer(glm::vec3 pos) {
+            int entityId = createBaseHumanoid(pos, true);
+            if (entityId == -1) return;
+
+            player = std::make_shared<Player>(grid, entityId, ecsManager);
+            glfwSetWindowUserPointer(window, player.get());
+        }
+
+        void initialiseNPC(glm::vec3 pos) {
+            int entityId = createBaseHumanoid(pos, false);
+            if (entityId == -1) return;
+
+            AIComponent ac(entityId);
+            ecsManager->addAIComponent(entityId, ac);
+        }
+
 
     public:
         World() {
@@ -248,22 +357,31 @@ namespace world {
 
         void initialise(GLFWwindow *window) {
             this->window = window;
-            initialisePlayer({30, 100, 30});
+            initialisePlayer({30, 30, 30});
+//            initialiseNPC({35, 100, 30});
+
             createVoxels();
             updateTerrainStreaming();
         }
 
         void update(double timeScale) {
-            player->processInput(window, timeScale);
-            ecsManager->update();
+            float dt = static_cast<float>(timeScale * FIXED_TIMESTEP);
+            player->processInput(window, timeScale, *ecsManager);
             updateTerrainStreaming();
+            aiSystem->updateAI(*ecsManager, grid, dt);
+            characterControllerSystem->update(*ecsManager, dt);
+
             physicsSystem->step(
                     ecsManager->getPhysicsComponentsDense(),
                     ecsManager->getPhysicsComponentsAmount(),
-                    gameObjects, grid, timeScale * FIXED_TIMESTEP
+                    gameObjects, grid, dt
             );
-            player->updateCamera();
 
+            attackSystem->update(*ecsManager, dt);
+
+
+
+            player->updateCamera(*ecsManager);
         }
 
         void render(double timeScale) {

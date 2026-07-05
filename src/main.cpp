@@ -116,6 +116,8 @@ int main()
 
     while (!glfwWindowShouldClose(window))
     {
+        glfwPollEvents();
+
         double current = glfwGetTime();
         double elapsed = current - previous;
         previous = current;
@@ -126,6 +128,7 @@ int main()
 
         while (lag >= FIXED_TIMESTEP)
         {
+
             voxelWorld->update(lag / FIXED_TIMESTEP);
             lag -= FIXED_TIMESTEP;
         }
@@ -133,7 +136,6 @@ int main()
 
 
         glfwSwapBuffers(window);
-        glfwPollEvents();
     }
 
     glfwTerminate();

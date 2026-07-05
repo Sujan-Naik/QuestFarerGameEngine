@@ -2,8 +2,6 @@
 #define QUESTFARERGAMEENGINE_COMPONENT_H
 
 #include <memory>
-#include "../objects/GameObject.h"
-
 
 namespace scene::components {
 
@@ -11,23 +9,20 @@ namespace scene::components {
 
     class Component {
     protected:
-        int entityId;
+        int entityId = -1;
         std::shared_ptr<ECSManager> ecsManager;
+
     public:
-
         Component(int entityId) : entityId(entityId) {}
+        Component() = default;
+        virtual ~Component() = default;
 
-        void setECSManager(std::shared_ptr<ECSManager> newEcsManager){
+        void setECSManager(std::shared_ptr<ECSManager> newEcsManager) {
             ecsManager = std::move(newEcsManager);
         }
 
-        virtual ~Component() = default;
-
-        virtual void receive(int message) = 0;
-
-        virtual void update() = 0;
-
-        int getEntityId() { return entityId; }
+        int getEntityId() const { return entityId; }
     };
 }
-#endif //QUESTFARERGAMEENGINE_COMPONENT_H
+
+#endif

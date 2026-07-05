@@ -336,7 +336,7 @@ public:
 
             glm::vec3 targetFootWorldPos = footWorldPositions[i];
             if (needsGrounding[i]) {
-                targetFootWorldPos.y = footWorldPositions[i].y + worldDropDistances[i];
+                targetFootWorldPos.y = footWorldPositions[i].y + worldDropDistances[i] + 1;
             } else {
                 targetFootWorldPos.y = footWorldPositions[i].y;
             }
@@ -461,38 +461,47 @@ public:
     unsigned int TextureFromFile(const char* path, const string& directory, bool gamma = false)
     {
         string filename = string(path);
+
+        // Convert backslashes to forward slashes for consistency
+        std::replace(filename.begin(), filename.end(), '\\', '/');
+
+        // Find the last slash to isolate just the filename
+        size_t lastSlash = filename.find_last_of('/');
+        if (lastSlash != string::npos)
+        {
+            filename = filename.substr(lastSlash + 1);
+        }
+
+        // Now safely combine your engine path with just "maria_diffuse.png"
         filename = directory + '/' + filename;
+
+        int width, height, nrComponents;
+        unsigned char* data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
+
+        if (!data)
+        {
+            std::cout << "TEXTURE FAILED TO LOAD AT PATH: " << filename << std::endl;
+            return 0;
+        }
 
         unsigned int textureID;
         glGenTextures(1, &textureID);
 
-        int width, height, nrComponents;
-        unsigned char* data = stbi_load(filename.c_str(), &width, &height, &nrComponents, 0);
-        if (data)
-        {
-            GLenum format;
-            if (nrComponents == 1)
-                format = GL_RED;
-            else if (nrComponents == 3)
-                format = GL_RGB;
-            else if (nrComponents == 4)
-                format = GL_RGBA;
+        GLenum format = GL_RGB;
+        if (nrComponents == 1) format = GL_RED;
+        else if (nrComponents == 3) format = GL_RGB;
+        else if (nrComponents == 4) format = GL_RGBA;
 
-            glBindTexture(GL_TEXTURE_2D, textureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-            stbi_image_free(data);
-        }
-        else
-        {
-            stbi_image_free(data);
-        }
+        stbi_image_free(data);
         return textureID;
     }
 
