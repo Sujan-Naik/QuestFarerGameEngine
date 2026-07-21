@@ -205,7 +205,6 @@ namespace world {
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
 
-            // States common to both
             auto idleAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Idle01")));
             idleAnimState->rootBoneNames = {"B-root"};
 
@@ -258,7 +257,6 @@ namespace world {
             transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, *ecsManager, stateJump)});
             transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr,*ecsManager, stateJump)});
 
-            // Player Specific Combat States & Transitions
             if (isPlayer) {
                 auto jabAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Jab")));
                 jabAnimState->rootBoneNames = {"B-root"};
@@ -309,13 +307,10 @@ namespace world {
             hc.maxHealth = 1000.0f;
             ecsManager->addHealthComponent(entityId, hc);
 
-            // Player Specific Combat Component
             if (isPlayer) {
                 AttackComponent atc(entityId);
                 atc.attackRadius = 2.0f;
-                const auto& boneInfoMap = assets.model->GetBoneInfoMap();
-                auto it = boneInfoMap.find("B-hand.L");
-                atc.damagingBoneIndex = (it != boneInfoMap.end()) ? it->second.id : -1;
+                atc.damagingBoneIndex = -1;
                 ecsManager->addAttackComponent(entityId, atc);
             }
 
@@ -341,8 +336,8 @@ namespace world {
             int entityId = createBaseHumanoid(pos, false);
             if (entityId == -1) return;
 
-            AIComponent ac(entityId);
-            ecsManager->addAIComponent(entityId, ac);
+//            AIComponent ac(entityId);
+//            ecsManager->addAIComponent(entityId, ac);
         }
 
 
@@ -458,7 +453,6 @@ namespace world {
                     gameObjects[i]->draw(ctx);
                 }
 
-
                 if (debug) {
                     // 1. Prepare global shader state once for all hitboxes
                     debugShader->use();
@@ -485,6 +479,13 @@ namespace world {
                         if (!characterController || !characterController->transform) continue;
 
                         glm::mat4 characterWorldMatrix = characterController->transform->matrix();
+
+                        // Check if this entity has an AttackComponent to determine the hand bone index
+                        int handBoneIndex = -1;
+                        AttackComponent* attackComp = ecsManager->getAttackComponent(entityId);
+                        if (attackComp) {
+                            handBoneIndex = attackComp->damagingBoneIndex;
+                        }
 
                         // Retrieve current animated bone transform positions from your model asset
                         const auto& finalBoneMatrices = physicsComponent.model->GetFinalBoneMatrices();
@@ -513,6 +514,15 @@ namespace world {
                             // Update struct metrics tracking runtime World-Space positions (AABB tracking fallback)
                             boneHitbox.currentMin = glm::vec3(dynamicModelMatrix * glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f));
                             boneHitbox.currentMax = glm::vec3(dynamicModelMatrix * glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f));
+
+                            // Set color: Green if it's the attacking hand, Red otherwise
+                            if (boneID == handBoneIndex) {
+                                // Green for the attacking hand hitbox
+                                debugShader->setVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
+                            } else {
+                                // Red for normal bone hitboxes
+                                debugShader->setVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
+                            }
 
                             // 3. Dispatch uniform variable update and issue draw command via GL_LINES
                             debugShader->setMat4("model", dynamicModelMatrix);

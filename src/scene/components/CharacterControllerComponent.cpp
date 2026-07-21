@@ -14,4 +14,12 @@ namespace scene::components {
     bool CharacterControllerComponent::getWantsToPunch() const {
         return m_wantsToPunch;
     }
+
+    bool CharacterControllerComponent::shouldUpdateAnimations() const {
+        return updateAnimations;
+    }
+
+    void CharacterControllerComponent::setUpdateAnimations(bool updateAnimations) {
+        CharacterControllerComponent::updateAnimations = updateAnimations;
+    }
 }

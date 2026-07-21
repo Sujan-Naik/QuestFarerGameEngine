@@ -13,7 +13,7 @@ class Camera
 public:
     static constexpr float DEFAULT_SPEED       = 0.1;
     static constexpr float DEFAULT_SENSITIVITY = 0.01f;
-    static constexpr float DEFAULT_FOV         = 70.0f;
+    static constexpr float DEFAULT_FOV         = 60.0f;
 
     Camera();
 

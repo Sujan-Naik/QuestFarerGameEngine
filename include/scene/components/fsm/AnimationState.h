@@ -3,6 +3,9 @@
 
 #include "../../../animation/Animation.h"
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/string_cast.hpp>
 #include <string>
 #include <algorithm>
@@ -14,6 +17,29 @@ using namespace animation;
 
 namespace scene::components::fsm {
 
+    struct SQTransform {
+        glm::vec3 translation = glm::vec3(0.0f);
+        glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+        glm::vec3 scale = glm::vec3(1.0f);
+
+        glm::mat4 ToMatrix() const {
+            glm::mat4 m = glm::toMat4(rotation);
+            m[0] *= scale.x;
+            m[1] *= scale.y;
+            m[2] *= scale.z;
+            m[3] = glm::vec4(translation, 1.0f);
+            return m;
+        }
+
+        static SQTransform Blend(const SQTransform& a, const SQTransform& b, float t) {
+            SQTransform result;
+            result.translation = glm::mix(a.translation, b.translation, t);
+            result.rotation = glm::slerp(a.rotation, b.rotation, t);
+            result.scale = glm::mix(a.scale, b.scale, t);
+            return result;
+        }
+    };
+
     struct BlendParameterContext {
         float speed = 0.0f;
         glm::vec2 direction = glm::vec2(0.0f);
@@ -21,7 +47,7 @@ namespace scene::components::fsm {
 
     struct AnimationStateOutput {
         glm::vec3 m_rootBonePosition = glm::vec3(0.0f);
-        std::vector<glm::mat4> finalBoneMatrices;
+        std::vector<SQTransform> localTransforms;
         glm::mat4 rootGlobalTransform = glm::mat4(1.0f);
         int rootBoneIndex = -1;
     };
@@ -30,7 +56,7 @@ namespace scene::components::fsm {
     public:
         virtual ~BlendNode() = default;
         virtual void Evaluate(float phase, const BlendParameterContext& ctx,
-                              std::vector<glm::mat4>& outLocalMatrices,
+                              std::vector<SQTransform>& outLocalPose,
                               glm::vec3& outRootPos, bool ignoreRootMotion) = 0;
         virtual float GetDurationSec(const BlendParameterContext& ctx) = 0;
         virtual size_t GetMaxBoneCount() = 0;
@@ -52,45 +78,49 @@ namespace scene::components::fsm {
         }
 
         void Evaluate(float phase, const BlendParameterContext& ctx,
-                      std::vector<glm::mat4>& outLocalMatrices,
+                      std::vector<SQTransform>& outLocalPose,
                       glm::vec3& outRootPos, bool ignoreRootMotion) override {
             if (!animation) return;
             float animationTime = phase * animation->GetDuration();
-            CalculateBoneTransform(&animation->GetRootNode(), glm::mat4(1.0f), animationTime, outLocalMatrices, outRootPos, ignoreRootMotion);
-        }
 
-    private:
-        void CalculateBoneTransform(const AssimpNodeData* node, glm::mat4 parentTransform, float animationTime,
-                                    std::vector<glm::mat4>& outMatrices, glm::vec3& outRootPos, bool ignoreRootMotion) {
-            std::string nodeName = node->name;
-            glm::mat4 nodeTransform = node->transformation;
-
-            Bone* bone = animation->FindBone(nodeName);
-            if (bone) {
-                bone->Update(animationTime);
-                nodeTransform = bone->GetLocalTransform();
-                if (ignoreRootMotion && nodeName == "B-root") {
-                    nodeTransform[3][0] = 0.0f;
-                    nodeTransform[3][1] = 0.0f;
-                    nodeTransform[3][2] = 0.0f;
-                }
-            }
-
-            glm::mat4 globalTransformation = parentTransform * nodeTransform;
             const auto& boneInfoMap = animation->GetBoneIDMap();
+            for (const auto& [nodeName, boneInfo] : boneInfoMap) {
+                int boneId = boneInfo.id;
+                if (boneId >= static_cast<int>(outLocalPose.size())) continue;
 
-            if (boneInfoMap.find(nodeName) != boneInfoMap.end()) {
-                int index = boneInfoMap.at(nodeName).id;
-                if (index < outMatrices.size()) {
-                    outMatrices[index] = globalTransformation * boneInfoMap.at(nodeName).offset;
-                }
-                if (nodeName == "B-root") {
-                    outRootPos = glm::vec3(globalTransformation[3]);
-                }
-            }
+                Bone* bone = animation->FindBone(nodeName);
+                if (bone) {
+                    bone->Update(animationTime);
+                    glm::mat4 localMat = bone->GetLocalTransform();
 
-            for (int i = 0; i < node->childrenCount; i++) {
-                CalculateBoneTransform(&node->children[i], globalTransformation, animationTime, outMatrices, outRootPos, ignoreRootMotion);
+                    if (ignoreRootMotion && nodeName == "B-root") {
+                        localMat[3][0] = 0.0f;
+                        localMat[3][1] = 0.0f;
+                        localMat[3][2] = 0.0f;
+                    }
+
+                    // Translation
+                    outLocalPose[boneId].translation = glm::vec3(localMat[3]);
+
+                    // Scale
+                    glm::vec3 scale;
+                    scale.x = glm::length(glm::vec3(localMat[0]));
+                    scale.y = glm::length(glm::vec3(localMat[1]));
+                    scale.z = glm::length(glm::vec3(localMat[2]));
+                    outLocalPose[boneId].scale = scale;
+
+                    // Rotation
+                    glm::mat3 rotMat;
+                    rotMat[0] = glm::vec3(localMat[0]) / (scale.x > 0.00001f ? scale.x : 1.0f);
+                    rotMat[1] = glm::vec3(localMat[1]) / (scale.y > 0.00001f ? scale.y : 1.0f);
+                    rotMat[2] = glm::vec3(localMat[2]) / (scale.z > 0.00001f ? scale.z : 1.0f);
+
+                    outLocalPose[boneId].rotation = glm::quat_cast(rotMat);
+
+                    if (nodeName == "B-root") {
+                        outRootPos = outLocalPose[boneId].translation;
+                    }
+                }
             }
         }
     };
@@ -115,22 +145,19 @@ namespace scene::components::fsm {
         }
 
         void Evaluate(float phase, const BlendParameterContext& ctx,
-                      std::vector<glm::mat4>& outLocalMatrices,
+                      std::vector<SQTransform>& outLocalPose,
                       glm::vec3& outRootPos, bool ignoreRootMotion) override {
             float t = glm::clamp((ctx.speed - thresholdA) / (thresholdB - thresholdA), 0.0f, 1.0f);
-            std::vector<glm::mat4> matricesA(outLocalMatrices.size(), glm::mat4(1.0f));
-            std::vector<glm::mat4> matricesB(outLocalMatrices.size(), glm::mat4(1.0f));
+            std::vector<SQTransform> poseA(outLocalPose.size());
+            std::vector<SQTransform> poseB(outLocalPose.size());
             glm::vec3 posA(0.0f), posB(0.0f);
 
-            childA->Evaluate(phase, ctx, matricesA, posA, ignoreRootMotion);
-            childB->Evaluate(phase, ctx, matricesB, posB, ignoreRootMotion);
+            childA->Evaluate(phase, ctx, poseA, posA, ignoreRootMotion);
+            childB->Evaluate(phase, ctx, poseB, posB, ignoreRootMotion);
 
             outRootPos = glm::mix(posA, posB, t);
-            for (size_t i = 0; i < outLocalMatrices.size(); ++i) {
-                outLocalMatrices[i] = matricesA[i] * (1.0f - t) + matricesB[i] * t;
-                if (!ignoreRootMotion && i == 0) {
-                    outLocalMatrices[i][3] = glm::vec4(outRootPos, 1.0f);
-                }
+            for (size_t i = 0; i < outLocalPose.size(); ++i) {
+                outLocalPose[i] = SQTransform::Blend(poseA[i], poseB[i], t);
             }
         }
     };
@@ -150,7 +177,9 @@ namespace scene::components::fsm {
         size_t GetMaxBoneCount() override {
             size_t maxBones = 0;
             for (const auto& el : elements) {
-                maxBones = std::max(maxBones, el.node->GetMaxBoneCount());
+                if (el.node) {
+                    maxBones = std::max(maxBones, el.node->GetMaxBoneCount());
+                }
             }
             return maxBones;
         }
@@ -159,41 +188,64 @@ namespace scene::components::fsm {
             auto weights = CalculateWeights(ctx.direction);
             float blendedDuration = 0.0f;
             for (size_t i = 0; i < elements.size(); ++i) {
-                blendedDuration += weights[i] * elements[i].node->GetDurationSec(ctx);
+                if (weights[i] > 0.001f && elements[i].node) {
+                    blendedDuration += weights[i] * elements[i].node->GetDurationSec(ctx);
+                }
             }
             return blendedDuration > 0.01f ? blendedDuration : 0.4f;
         }
 
         void Evaluate(float phase, const BlendParameterContext& ctx,
-                      std::vector<glm::mat4>& outLocalMatrices,
+                      std::vector<SQTransform>& outLocalPose,
                       glm::vec3& outRootPos, bool ignoreRootMotion) override {
             auto weights = CalculateWeights(ctx.direction);
-            size_t boneCount = outLocalMatrices.size();
+            size_t boneCount = outLocalPose.size();
 
-            std::vector<glm::mat4> totalMatrices(boneCount, glm::mat4(0.0f));
-            glm::vec3 totalRootPos(0.0f);
+            outRootPos = glm::vec3(0.0f);
+            std::vector<glm::vec3> accumTranslations(boneCount, glm::vec3(0.0f));
+            std::vector<glm::vec3> accumScales(boneCount, glm::vec3(0.0f));
+            std::vector<glm::quat> accumRotations(boneCount, glm::quat(0.0f, 0.0f, 0.0f, 0.0f));
 
-            std::vector<glm::mat4> tempMatrices(boneCount, glm::mat4(1.0f));
-            glm::vec3 tempRootPos(0.0f);
+            // Thread-local buffer prevents heap reallocations during evaluation loops
+            thread_local std::vector<SQTransform> childPose;
+            if (childPose.size() != boneCount) {
+                childPose.resize(boneCount);
+            }
+
+            bool firstActive = true;
 
             for (size_t i = 0; i < elements.size(); ++i) {
-                if (weights[i] <= 0.0001f) continue;
+                float w = weights[i];
+                if (w <= 0.001f || !elements[i].node) continue;
 
-                std::fill(tempMatrices.begin(), tempMatrices.end(), glm::mat4(1.0f));
-                tempRootPos = glm::vec3(0.0f);
+                glm::vec3 childRootPos(0.0f);
+                elements[i].node->Evaluate(phase, ctx, childPose, childRootPos, ignoreRootMotion);
 
-                elements[i].node->Evaluate(phase, ctx, tempMatrices, tempRootPos, ignoreRootMotion);
+                outRootPos += childRootPos * w;
 
-                totalRootPos += tempRootPos * weights[i];
                 for (size_t b = 0; b < boneCount; ++b) {
-                    totalMatrices[b] += tempMatrices[b] * weights[i];
-                }
-            }
-            outRootPos = totalRootPos;
-            outLocalMatrices = totalMatrices;
+                    accumTranslations[b] += childPose[b].translation * w;
+                    accumScales[b] += childPose[b].scale * w;
 
-            if (!ignoreRootMotion && boneCount > 0) {
-                outLocalMatrices[0][3] = glm::vec4(outRootPos, 1.0f);
+                    glm::quat q = childPose[b].rotation;
+                    if (firstActive) {
+                        accumRotations[b] = q * w;
+                    } else {
+                        if (glm::dot(accumRotations[b], q) < 0.0f) {
+                            q = -q;
+                        }
+                        accumRotations[b] += q * w;
+                    }
+                }
+                firstActive = false;
+            }
+
+            for (size_t b = 0; b < boneCount; ++b) {
+                outLocalPose[b].translation = accumTranslations[b];
+                outLocalPose[b].scale = accumScales[b];
+                outLocalPose[b].rotation = glm::length(accumRotations[b]) > 0.0001f
+                                           ? glm::normalize(accumRotations[b])
+                                           : glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
             }
         }
 
@@ -216,6 +268,7 @@ namespace scene::components::fsm {
                     return weights;
                 }
 
+                // Culling opposite direction nodes (from reference code)
                 float dotProd = glm::dot(glm::normalize(inputPos), glm::normalize(elements[i].position));
                 if (dotProd < 0.0f && glm::length(elements[i].position) > 0.01f) {
                     weights[i] = 0.0f;
@@ -266,11 +319,11 @@ namespace scene::components::fsm {
             m_rootDeltaThisFrame = glm::vec3(0.0f);
             if (rootNode) {
                 size_t boneCount = rootNode->GetMaxBoneCount();
-                output.finalBoneMatrices.assign(boneCount, glm::mat4(1.0f));
+                output.localTransforms.resize(boneCount);
                 BlendParameterContext dummyCtx;
-                std::vector<glm::mat4> tempBones(boneCount, glm::mat4(1.0f));
-                rootNode->Evaluate(0.0f, dummyCtx, tempBones, m_clipStartRootPos, false);
-                rootNode->Evaluate(0.99f, dummyCtx, tempBones, m_clipEndRootPos, false);
+                std::vector<SQTransform> tempPose(boneCount);
+                rootNode->Evaluate(0.0f, dummyCtx, tempPose, m_clipStartRootPos, false);
+                rootNode->Evaluate(0.99f, dummyCtx, tempPose, m_clipEndRootPos, false);
             }
         }
 
@@ -292,34 +345,34 @@ namespace scene::components::fsm {
             }
 
             size_t boneCount = rootNode->GetMaxBoneCount();
-            if (output.finalBoneMatrices.size() != boneCount) {
-                output.finalBoneMatrices.assign(boneCount, glm::mat4(1.0f));
+            if (output.localTransforms.size() != boneCount) {
+                output.localTransforms.resize(boneCount);
             }
 
-            // --- 1. Evaluate into isolated scratch matrix space to calculate physics root deltas ---
-            std::vector<glm::mat4> scratchMatrices(boneCount, glm::mat4(1.0f));
+            thread_local std::vector<SQTransform> scratchPose;
+            if (scratchPose.size() != boneCount) scratchPose.resize(boneCount);
+
             glm::vec3 rootPosAtCurrentPhase(0.0f);
-            rootNode->Evaluate(m_phase, ctx, scratchMatrices, rootPosAtCurrentPhase, false);
+            rootNode->Evaluate(m_phase, ctx, scratchPose, rootPosAtCurrentPhase, false);
 
             if (m_loopedThisFrame) {
                 glm::vec3 rootPosAtEnd(0.0f);
                 glm::vec3 rootPosAtStart(0.0f);
 
-                rootNode->Evaluate(0.999f, ctx, scratchMatrices, rootPosAtEnd, false);
-                rootNode->Evaluate(0.0f, ctx, scratchMatrices, rootPosAtStart, false);
+                rootNode->Evaluate(0.999f, ctx, scratchPose, rootPosAtEnd, false);
+                rootNode->Evaluate(0.0f, ctx, scratchPose, rootPosAtStart, false);
 
                 glm::vec3 rootPosAtPrev(0.0f);
-                rootNode->Evaluate(m_previousPhase, ctx, scratchMatrices, rootPosAtPrev, false);
+                rootNode->Evaluate(m_previousPhase, ctx, scratchPose, rootPosAtPrev, false);
 
                 m_rootDeltaThisFrame = (rootPosAtEnd - rootPosAtPrev) + (rootPosAtCurrentPhase - rootPosAtStart);
             } else {
                 glm::vec3 rootPosAtPrev(0.0f);
-                rootNode->Evaluate(m_previousPhase, ctx, scratchMatrices, rootPosAtPrev, false);
+                rootNode->Evaluate(m_previousPhase, ctx, scratchPose, rootPosAtPrev, false);
                 m_rootDeltaThisFrame = rootPosAtCurrentPhase - rootPosAtPrev;
             }
 
-            // --- 2. Evaluate visuals with ignoreRootMotion=true directly into final bone matrices ---
-            rootNode->Evaluate(m_phase, ctx, output.finalBoneMatrices, output.m_rootBonePosition, true);
+            rootNode->Evaluate(m_phase, ctx, output.localTransforms, output.m_rootBonePosition, true);
 
             output.rootGlobalTransform = glm::translate(glm::mat4(1.0f), output.m_rootBonePosition);
             output.rootBoneIndex = 0;
