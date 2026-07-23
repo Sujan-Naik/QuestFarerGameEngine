@@ -68,7 +68,7 @@ namespace world {
         std::queue<std::future<PendingChunk>> generationFutures;
 
         rendering::VoxelRenderer* voxelRendererPtr = nullptr;
-        const int RENDER_DISTANCE = 6;
+        const int RENDER_DISTANCE = 24;
         const int UNLOAD_MARGIN = 2;
 
         void createVoxels() {
@@ -155,7 +155,7 @@ namespace world {
                        (std::abs(b.x - pChunkX) + std::abs(b.z - pChunkZ));
             });
 
-            const int MAX_CONCURRENT_THREADS = 2;
+            const int MAX_CONCURRENT_THREADS = 4;
             for (const auto& pos : targets) {
                 if (generationFutures.size() >= MAX_CONCURRENT_THREADS) break;
 
@@ -190,7 +190,8 @@ namespace world {
 
         int createBaseHumanoid(glm::vec3 pos, bool isPlayer) {
             animation::AnimationAssetLibrary assets;
-            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
+//            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
+            assets.loadFromFBX("resources/objects/humanoid/larissa/larissa_2.fbx");
             if (!assets.model) return -1;
 
             auto ourShader = std::make_unique<Shader>(
@@ -200,7 +201,8 @@ namespace world {
 
             auto characterTransform = Transform{assets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
-            characterTransform.scale = {0.05f, 0.05f, 0.05f};
+//            characterTransform.scale = {0.05f, 0.05f, 0.05f};
+            characterTransform.scale = {20, 20, 20};
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
