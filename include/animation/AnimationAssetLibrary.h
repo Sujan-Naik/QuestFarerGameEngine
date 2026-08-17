@@ -6,6 +6,7 @@
 #include <memory>
 #include <vector>
 #include <iostream>
+#include <algorithm>
 #include "../rendering/model/ModelAnimation.h"
 #include "Animation.h"
 
@@ -19,6 +20,31 @@ namespace animation {
         std::vector<std::shared_ptr<ModelAnimation>> sourceFiles;
 
         std::map<std::string, std::shared_ptr<Animation>> animations;
+
+        // Helper method to strip unwanted Blender prefixes and suffixes
+        std::string sanitizeAnimationName(std::string animName, unsigned int defaultIndex = 0) const {
+            // Remove any prefix ending in '|' (e.g., "Armature|", "Character|")
+            size_t pipePos = animName.rfind('|');
+            if (pipePos != std::string::npos) {
+                animName = animName.substr(pipePos + 1);
+            }
+
+            // Remove trailing Blender instance numbers like ".001", ".002"
+            size_t dotPos = animName.rfind('.');
+            if (dotPos != std::string::npos && dotPos + 4 == animName.length()) {
+                std::string suffix = animName.substr(dotPos + 1);
+                if (suffix.length() == 3 && std::all_of(suffix.begin(), suffix.end(), ::isdigit)) {
+                    animName = animName.substr(0, dotPos);
+                }
+            }
+
+            // Fallback if the name ends up empty
+            if (animName.empty()) {
+                animName = "Animation_" + std::to_string(defaultIndex);
+            }
+
+            return animName;
+        }
 
         void loadFromGLB(const std::string &path) {
             auto newSource = std::make_shared<ModelAnimation>(path);
@@ -40,7 +66,7 @@ namespace animation {
 
                 anim->LinkBonesWithModel(*model);
 
-                std::string animName = scene->mAnimations[i]->mName.C_Str();
+                std::string animName = sanitizeAnimationName(scene->mAnimations[i]->mName.C_Str(), i);
                 animations[animName] = anim;
 
                 std::cout << "[Library] Registered Animation: " << animName
@@ -71,13 +97,13 @@ namespace animation {
 
                 anim->ApplyCoordinateSystemConversion();
 
-                animations[animationName] = anim;
+                std::string cleanName = sanitizeAnimationName(animationName, i);
+                animations[cleanName] = anim;
 
-                std::cout << "[Library] Registered Animation: " << animationName
+                std::cout << "[Library] Registered Animation: " << cleanName
                           << " (from " << path << ")" << std::endl;
             }
         }
-
 
         void loadFromFBX(const std::string &path) {
             auto newSource = std::make_shared<ModelAnimation>(path);
@@ -107,29 +133,7 @@ namespace animation {
 
                 anim->LinkBonesWithModel(*model);
 
-                // Pull animation name and strip .001, .002, etc.
-                std::string animName = scene->mAnimations[i]->mName.C_Str();
-
-                // --- NEW: Remove "Armature|" prefix ---
-                std::string prefix = "Armature|";
-                if (animName.rfind(prefix, 0) == 0) { // Checks if animName starts with "Armature|"
-                    animName = animName.substr(prefix.length());
-                }
-                // --------------------------------------
-
-                // Remove trailing .00X pattern
-                size_t dotPos = animName.rfind('.');
-                if (dotPos != std::string::npos && dotPos + 4 == animName.length()) {
-                    std::string suffix = animName.substr(dotPos + 1);
-                    if (suffix.length() == 3 && std::all_of(suffix.begin(), suffix.end(), ::isdigit)) {
-                        animName = animName.substr(0, dotPos);
-                    }
-                }
-
-                // Fallback to index if name is empty after cleanup
-                if (animName.empty()) {
-                    animName = "Animation_" + std::to_string(i);
-                }
+                std::string animName = sanitizeAnimationName(scene->mAnimations[i]->mName.C_Str(), i);
 
                 animations[animName] = anim;
 

@@ -3,6 +3,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <iostream>
 
 struct Transform {
     glm::quat rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
@@ -47,6 +48,9 @@ struct Transform {
             minBounds = glm::min(minBounds, vertex);
             maxBounds = glm::max(maxBounds, vertex);
         }
+
+        maxBounds.y -= minBounds.y;
+        minBounds.y = 0;
     }
 
     glm::vec3 getSize() const {

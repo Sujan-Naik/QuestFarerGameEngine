@@ -10,7 +10,7 @@ namespace scene::components {
     class AttackComponent : public Component {
     public:
         int damagingBoneIndex = -1;
-        float attackRadius = 0.5f;
+        float attackRadius = 0.01f;
         bool isAttackActive = false;
 
         std::unordered_set<int> entitiesAlreadyHit;

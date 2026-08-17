@@ -18,14 +18,18 @@ void Player::updateCamera(scene::components::ECSManager& ecs){
     auto* avatar = &ecs.getCharacterControllerComponentFromSparse(avatarEntityId);
     if (avatar && avatar->transform){
         glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw()), glm::vec3(0.0f, 1.0f, 0.0f));
+//        glm::quat yawRotation = glm::angleAxis(glm::radians(camera->getYaw() + 180), glm::vec3(0.0f, 1.0f, 0.0f));
         avatar->transform->rotation = yawRotation;
 
-        glm::vec3 offset = (avatar->transform->getBack() * glm::vec3(2, 2, 2) + avatar->transform->getUp() * glm::vec3(0, 0.1f, 0)) *
+        glm::vec3 offset = (avatar->transform->getBack()  + avatar->transform->getUp() * glm::vec3(0,1,0)) *
                            avatar->transform->getSize().x;
 
-        glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->transform->getTop() + offset, 0.2f);
-//        camera->setPosition(newCameraPosition);
-        camera->setPosition(avatar->transform->getTop() + offset);
+//        glm::vec3 offset = (avatar->transform->getForward() * glm::vec3(2, 2, 2) + avatar->transform->getUp() * glm::vec3(0, 0.1f, 0)) *
+//                           avatar->transform->getSize().x;
+
+        glm::vec3 newCameraPosition = glm::mix(camera->getPosition(), avatar->transform->getTop() + offset, 0.99f);
+        camera->setPosition(newCameraPosition);
+//        camera->setPosition(avatar->transform->getTop() + offset);
     }
 }
 

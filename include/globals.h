@@ -40,6 +40,6 @@ constexpr int X_CHUNKS = 16, Z_CHUNKS=16;
 
 constexpr int X_CHUNK_SIZE = 16, Y_CHUNK_SIZE=16, Z_CHUNK_SIZE=16;
 
-const float MODEL_SCALE = 0.05f;
+const float MODEL_SCALE = 20;
 
 #endif //QUESTFARERGAMEENGINE_GLOBALS_H

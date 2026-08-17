@@ -73,19 +73,19 @@ namespace voxel {
         }
 
         void AddEntityToChunk(int entityId, glm::ivec2 chunkCoord) {
-            std::cout << "[Grid] Attempting to add entity ID: " << entityId << " to chunk (" << chunkCoord.x << ", " << chunkCoord.y << ")\n";
+//            std::cout << "[Grid] Attempting to add entity ID: " << entityId << " to chunk (" << chunkCoord.x << ", " << chunkCoord.y << ")\n";
 
             auto it = chunks.find(chunkCoord);
             if (it != chunks.end()) {
                 auto& entities = it->second->occupyingEntities;
                 if (std::find(entities.begin(), entities.end(), entityId) == entities.end()) {
                     entities.push_back(entityId);
-                    std::cout << "[Grid] Successfully added entity ID: " << entityId << " to chunk (" << chunkCoord.x << ", " << chunkCoord.y << "). Total entities: " << entities.size() << "\n";
+//                    std::cout << "[Grid] Successfully added entity ID: " << entityId << " to chunk (" << chunkCoord.x << ", " << chunkCoord.y << "). Total entities: " << entities.size() << "\n";
                 } else {
-                    std::cout << "[Grid] Warning: Entity ID: " << entityId << " already present in chunk (" << chunkCoord.x << ", " << chunkCoord.y << ")\n";
+//                    std::cout << "[Grid] Warning: Entity ID: " << entityId << " already present in chunk (" << chunkCoord.x << ", " << chunkCoord.y << ")\n";
                 }
             } else {
-                std::cout << "[Grid] Error: Failed to add entity ID: " << entityId << " - Chunk (" << chunkCoord.x << ", " << chunkCoord.y << ") does not exist!\n";
+//                std::cout << "[Grid] Error: Failed to add entity ID: " << entityId << " - Chunk (" << chunkCoord.x << ", " << chunkCoord.y << ") does not exist!\n";
             }
         }
 

@@ -68,7 +68,7 @@ namespace world {
         std::queue<std::future<PendingChunk>> generationFutures;
 
         rendering::VoxelRenderer* voxelRendererPtr = nullptr;
-        const int RENDER_DISTANCE = 6;
+        const int RENDER_DISTANCE = 24;
         const int UNLOAD_MARGIN = 2;
 
         void createVoxels() {
@@ -155,7 +155,7 @@ namespace world {
                        (std::abs(b.x - pChunkX) + std::abs(b.z - pChunkZ));
             });
 
-            const int MAX_CONCURRENT_THREADS = 2;
+            const int MAX_CONCURRENT_THREADS = 4;
             for (const auto& pos : targets) {
                 if (generationFutures.size() >= MAX_CONCURRENT_THREADS) break;
 
@@ -190,7 +190,8 @@ namespace world {
 
         int createBaseHumanoid(glm::vec3 pos, bool isPlayer) {
             animation::AnimationAssetLibrary assets;
-            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
+//            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
+            assets.loadFromFBX("resources/objects/humanoid/larissa/larissa_2.fbx");
             if (!assets.model) return -1;
 
             auto ourShader = std::make_unique<Shader>(
@@ -200,12 +201,12 @@ namespace world {
 
             auto characterTransform = Transform{assets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
-            characterTransform.scale = {0.05f, 0.05f, 0.05f};
+//            characterTransform.scale = {0.05f, 0.05f, 0.05f};
+            characterTransform.scale = {20, 20, 20};
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
 
-            // States common to both
             auto idleAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Idle01")));
             idleAnimState->rootBoneNames = {"B-root"};
 
@@ -258,7 +259,6 @@ namespace world {
             transitions[stateJump].push_back({stateLocomotion, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr, *ecsManager, stateJump)});
             transitions[stateJump].push_back({stateIdle, std::make_shared<fsm::JumpToFallbackTransition>(permanentCcPtr,*ecsManager, stateJump)});
 
-            // Player Specific Combat States & Transitions
             if (isPlayer) {
                 auto jabAnimState = std::make_shared<AnimationState>(std::make_unique<ClipNode>(assets.get("HumanM@Jab")));
                 jabAnimState->rootBoneNames = {"B-root"};
@@ -309,13 +309,10 @@ namespace world {
             hc.maxHealth = 1000.0f;
             ecsManager->addHealthComponent(entityId, hc);
 
-            // Player Specific Combat Component
             if (isPlayer) {
                 AttackComponent atc(entityId);
                 atc.attackRadius = 2.0f;
-                const auto& boneInfoMap = assets.model->GetBoneInfoMap();
-                auto it = boneInfoMap.find("B-hand.L");
-                atc.damagingBoneIndex = (it != boneInfoMap.end()) ? it->second.id : -1;
+                atc.damagingBoneIndex = -1;
                 ecsManager->addAttackComponent(entityId, atc);
             }
 
@@ -341,8 +338,8 @@ namespace world {
             int entityId = createBaseHumanoid(pos, false);
             if (entityId == -1) return;
 
-            AIComponent ac(entityId);
-            ecsManager->addAIComponent(entityId, ac);
+//            AIComponent ac(entityId);
+//            ecsManager->addAIComponent(entityId, ac);
         }
 
 
@@ -358,10 +355,18 @@ namespace world {
         void initialise(GLFWwindow *window) {
             this->window = window;
             initialisePlayer({30, 30, 30});
-//            initialiseNPC({35, 100, 30});
+            initialiseNPC({35, 100, 30});
 
             createVoxels();
             updateTerrainStreaming();
+
+            if (debug){
+                debugShader = std::make_unique<Shader>(
+                        "../shader/vertex/debug.vs",
+                        "../shader/fragment/debug.fs"
+                );
+                initDebugBoxRenderer();
+            }
         }
 
         void update(double timeScale) {
@@ -384,11 +389,150 @@ namespace world {
             player->updateCamera(*ecsManager);
         }
 
+        bool debug = true;
+
+        std::unique_ptr<Shader> debugShader;
+
+
+
+//        void drawBoneHitbox(BoneHitbox & hitbox){
+//
+//        }
+        unsigned int debugBoxVAO = 0;
+        unsigned int debugBoxVBO = 0;
+        unsigned int debugBoxEBO = 0;
+
+        void initDebugBoxRenderer() {
+            // A standard unit cube bounding box centered at (0,0,0) extending from -0.5 to 0.5
+            float vertices[] = {
+                    -0.5f, -0.5f, -0.5f,
+                    0.5f, -0.5f, -0.5f,
+                    0.5f,  0.5f, -0.5f,
+                    -0.5f,  0.5f, -0.5f,
+                    -0.5f, -0.5f,  0.5f,
+                    0.5f, -0.5f,  0.5f,
+                    0.5f,  0.5f,  0.5f,
+                    -0.5f,  0.5f,  0.5f
+            };
+
+            // Index mappings to draw the 12 edges of the cube using GL_LINES
+            unsigned int indices[] = {
+                    0, 1,  1, 2,  2, 3,  3, 0, // Bottom plane
+                    4, 5,  5, 6,  6, 7,  7, 4, // Top plane
+                    0, 4,  1, 5,  2, 6,  3, 7  // Vertical edge pillars
+            };
+
+            glGenVertexArrays(1, &debugBoxVAO);
+            glGenBuffers(1, &debugBoxVBO);
+            glGenBuffers(1, &debugBoxEBO);
+
+            glBindVertexArray(debugBoxVAO);
+
+            glBindBuffer(GL_ARRAY_BUFFER, debugBoxVBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, debugBoxEBO);
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            glBindVertexArray(0);
+        }
+
+        void cleanupDebugBoxRenderer() {
+            if (debugBoxVAO) glDeleteVertexArrays(1, &debugBoxVAO);
+            if (debugBoxVBO) glDeleteBuffers(1, &debugBoxVBO);
+            if (debugBoxEBO) glDeleteBuffers(1, &debugBoxEBO);
+        }
+
+
+
         void render(double timeScale) {
             if (player) {
                 RenderContext ctx = player->getRenderContext();
                 for (int i = 0; i < numEntities; i++) {
                     gameObjects[i]->draw(ctx);
+                }
+
+                if (debug) {
+                    // 1. Prepare global shader state once for all hitboxes
+                    debugShader->use();
+                    debugShader->setVec3("lightPos", glm::vec3(5.0f, 10.0f, 5.0f));
+                    debugShader->setVec3("viewPos", glm::vec3(0.0f, 0.0f, 3.0f));
+                    debugShader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+                    debugShader->setMat4("view", ctx.view);
+                    debugShader->setMat4("projection", ctx.projection);
+
+                    // 2. Bind the pre-allocated wireframe cube VAO
+                    glBindVertexArray(debugBoxVAO);
+
+                    int totalPhysicsComponents = ecsManager->getPhysicsComponentsAmount();
+                    auto physicsDenseArray = ecsManager->getPhysicsComponentsDense();
+
+                    for (int currentPhysicsComponent = 0; currentPhysicsComponent < totalPhysicsComponents; currentPhysicsComponent++) {
+
+                        auto& physicsComponent = physicsDenseArray[currentPhysicsComponent];
+                        if (!physicsComponent.model) continue;
+
+                        // Fetch the character entity's global transform matrix
+                        auto entityId = physicsComponent.getEntityId();
+                        auto characterController = ecsManager->getCharacterControllerComponent(entityId);
+                        if (!characterController || !characterController->transform) continue;
+
+                        glm::mat4 characterWorldMatrix = characterController->transform->matrix();
+
+                        // Check if this entity has an AttackComponent to determine the hand bone index
+                        int handBoneIndex = -1;
+                        AttackComponent* attackComp = ecsManager->getAttackComponent(entityId);
+                        if (attackComp) {
+                            handBoneIndex = attackComp->damagingBoneIndex;
+                        }
+
+                        // Retrieve current animated bone transform positions from your model asset
+                        const auto& finalBoneMatrices = physicsComponent.model->GetFinalBoneMatrices();
+
+                        for (auto& boneHitbox : physicsComponent.hitboxes) {
+                            int boneID = boneHitbox.boneIndex;
+
+                            // Ensure the animation layout matches the loaded physics structural footprint array size
+                            if (boneID < 0 || boneID >= static_cast<int>(finalBoneMatrices.size())) {
+                                continue;
+                            }
+
+                            // Calculate the geometric center and spatial boundaries of this specific bone's vertex weight footprint
+                            glm::vec3 localCenter = (boneHitbox.localMin + boneHitbox.localMax) * 0.5f;
+                            glm::vec3 localSize   = boneHitbox.localMax - boneHitbox.localMin;
+
+                            // Build structural translation + scale offset matrix relative to the joint node pivot
+                            glm::mat4 hitboxScaleTranslation = glm::mat4(1.0f);
+                            hitboxScaleTranslation = glm::translate(hitboxScaleTranslation, localCenter);
+                            hitboxScaleTranslation = glm::scale(hitboxScaleTranslation, localSize);
+
+                            // Cascade order: Base Unit Cube -> Bone Shape Size -> Dynamic Animated Joint Path -> Character Position Space
+                            glm::mat4 activeBoneMatrix = finalBoneMatrices[boneID];
+                            glm::mat4 dynamicModelMatrix = characterWorldMatrix * activeBoneMatrix * hitboxScaleTranslation;
+
+                            // Update struct metrics tracking runtime World-Space positions (AABB tracking fallback)
+                            boneHitbox.currentMin = glm::vec3(dynamicModelMatrix * glm::vec4(-0.5f, -0.5f, -0.5f, 1.0f));
+                            boneHitbox.currentMax = glm::vec3(dynamicModelMatrix * glm::vec4( 0.5f,  0.5f,  0.5f, 1.0f));
+
+                            // Set color: Green if it's the attacking hand, Red otherwise
+                            if (boneID == handBoneIndex) {
+                                // Green for the attacking hand hitbox
+                                debugShader->setVec3("color", glm::vec3(0.0f, 1.0f, 0.0f));
+                            } else {
+                                // Red for normal bone hitboxes
+                                debugShader->setVec3("color", glm::vec3(1.0f, 0.0f, 0.0f));
+                            }
+
+                            // 3. Dispatch uniform variable update and issue draw command via GL_LINES
+                            debugShader->setMat4("model", dynamicModelMatrix);
+                            glDrawElements(GL_LINES, 24, GL_UNSIGNED_INT, 0);
+                        }
+                    }
+
+                    glBindVertexArray(0);
                 }
             }
         }

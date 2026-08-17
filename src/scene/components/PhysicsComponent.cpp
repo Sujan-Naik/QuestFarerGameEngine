@@ -2,6 +2,8 @@
 #include <utility>
 #include <algorithm>
 #include <limits>
+#include <iomanip>
+#include <vector>
 
 namespace scene::components {
 
@@ -14,62 +16,71 @@ namespace scene::components {
 
         hitboxes.clear();
         auto& boneMap = model->GetBoneInfoMap();
+        size_t numBones = boneMap.size();
 
-        // 1. Initialize empty tracking boxes for every bone inside the skeleton map
+        // 1. Temporary buffer for collecting bounds per bone ID
+        struct TempBounds {
+            int boneIndex = -1;
+            std::string name;
+            glm::vec3 minBound{std::numeric_limits<float>::max()};
+            glm::vec3 maxBound{-std::numeric_limits<float>::max()};
+            bool hasVertices = false;
+        };
+
+        std::vector<TempBounds> tempBounds(numBones);
         for (auto const& [name, info] : boneMap) {
-            BoneHitbox hb;
-            hb.boneIndex = info.id;
-            hb.localMin = glm::vec3(std::numeric_limits<float>::max());
-            hb.localMax = glm::vec3(-std::numeric_limits<float>::max());
-            hitboxes.push_back(hb);
+            if (info.id >= 0 && info.id < static_cast<int>(numBones)) {
+                tempBounds[info.id].boneIndex = info.id;
+                tempBounds[info.id].name = name;
+            }
         }
 
-        // 2. Loop directly over your model's meshes and their internal vertices
+        // 2. Accumulate Mesh-Space bounds
         for (const auto& mesh : model->meshes) {
             for (const auto& vertex : mesh.vertices) {
-                // Loop through your vertex bone influence channels (MAX_BONE_INFLUENCE = 4)
                 for (int i = 0; i < 4; ++i) {
                     int boneID = vertex.m_BoneIDs[i];
                     float weight = vertex.m_Weights[i];
 
-                    // Guard against unbound joints or weak skin weights (< 20% structural hold)
-                    if (boneID < 0 || boneID >= static_cast<int>(hitboxes.size()) || weight < 0.20f) {
+                    if (boneID < 0 || boneID >= static_cast<int>(numBones) || weight < 0.40f) {
                         continue;
                     }
 
-                    // Look up the corresponding bone's unique offset matrix
-                    glm::mat4 offsetMatrix(1.0f);
-                    for (auto const& [name, info] : boneMap) {
-                        if (info.id == boneID) {
-                            offsetMatrix = info.offset;
-                            break;
-                        }
-                    }
+                    glm::vec3 meshSpacePos = glm::vec3(vertex.Position.x, vertex.Position.y, vertex.Position.z);
 
-                    // Convert standard mesh-space position directly to bone-local space
-                    glm::vec4 meshLocalPos(vertex.Position.x, vertex.Position.y, vertex.Position.z, 1.0f);
-                    glm::vec3 boneLocalPos = glm::vec3(offsetMatrix * meshLocalPos);
-
-                    // Tighten the boundary encapsulating this vertex inside the local joint footprint
-                    auto& hb = hitboxes[boneID];
-                    hb.localMin = glm::min(hb.localMin, boneLocalPos);
-                    hb.localMax = glm::max(hb.localMax, boneLocalPos);
+                    auto& tb = tempBounds[boneID];
+                    tb.minBound = glm::min(tb.minBound, meshSpacePos);
+                    tb.maxBound = glm::max(tb.maxBound, meshSpacePos);
+                    tb.hasVertices = true;
                 }
             }
         }
 
-        // 3. Fallback normalization pass
-        for (auto& hb : hitboxes) {
-            if (hb.localMin.x > hb.localMax.x) {
-                // Fallback dimensions for helper/utility joints without vertex weight mappings
-                float fallbackSize = 0.2f;
-                hb.localMin = glm::vec3(-fallbackSize);
-                hb.localMax = glm::vec3(fallbackSize);
-            } else {
-                // Uniform padding offset to guarantee the bounding shell sits slightly past vertex bounds
-                hb.localMin -= glm::vec3(0.05f);
-                hb.localMax += glm::vec3(0.05f);
+        // 3. Keep ONLY valid, non-empty, non-end hitboxes
+        for (const auto& tb : tempBounds) {
+            // Skip unassigned bones or bones without enough vertices
+            if (!tb.hasVertices || tb.minBound.x > tb.maxBound.x) {
+                continue;
             }
+
+            // Skip exporter leaf/end bones completely
+            if (tb.name.find("_end") != std::string::npos) {
+                continue;
+            }
+
+            // Check for collapsed single-point boxes (zero volume)
+            glm::vec3 size = tb.maxBound - tb.minBound;
+            if (size.x <= 0.001f && size.y <= 0.001f && size.z <= 0.001f) {
+                continue;
+            }
+
+            // Add valid hitbox to final list
+            BoneHitbox hb;
+            hb.boneIndex = tb.boneIndex;
+            hb.localMin = tb.minBound - glm::vec3(0.01f);
+            hb.localMax = tb.maxBound + glm::vec3(0.01f);
+
+            hitboxes.push_back(hb);
         }
     }
 

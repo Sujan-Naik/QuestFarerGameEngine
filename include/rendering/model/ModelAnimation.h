@@ -9,6 +9,7 @@
 #include "../../animation/assimp_glm_helpers.h"
 #include "../mesh/MeshAnimation.h"
 #include "glm/gtx/quaternion.hpp"
+#include "../../animation/Animation.h"
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -43,24 +44,46 @@ public:
     bool gammaCorrection;
     std::vector<glm::mat4> finalBoneMatrices;
 
-    // Foot bone tracking
     std::vector<std::string> footBoneNames = {"B-foot.L", "B-foot.R"};
     std::vector<int> footBoneIndices;
     bool footBonesInitialized = false;
 
+    int GetParentBoneId(int childBoneId) const
+    {
+        std::string childName = "";
+        for (const auto& [name, info] : m_BoneInfoMap) {
+            if (info.id == childBoneId) {
+                childName = name;
+                break;
+            }
+        }
 
-    /**
-     * @brief Store temporary foot adjustments (applied only for rendering this frame).
-     * Called by physics system after collision resolution.
-     */
+        if (childName.empty() || !m_Scene || !m_Scene->mRootNode) {
+            return -1;
+        }
+
+        aiNode* childNode = m_Scene->mRootNode->FindNode(childName.c_str());
+        if (!childNode || !childNode->mParent) {
+            return -1;
+        }
+
+        aiNode* parentNode = childNode->mParent;
+        while (parentNode) {
+            std::string parentName = parentNode->mName.C_Str();
+            auto it = m_BoneInfoMap.find(parentName);
+            if (it != m_BoneInfoMap.end()) {
+                return it->second.id;
+            }
+            parentNode = parentNode->mParent;
+        }
+
+        return -1;
+    }
+
     void SetFootAdjustments(const std::vector<glm::mat4>& adjustedBones) {
         footAdjustmentMatrices = adjustedBones;
     }
 
-    /**
-     * @brief Get bone matrices with foot adjustments applied.
-     * Used during rendering to apply terrain-fitted feet.
-     */
     std::vector<glm::mat4> GetAdjustedBoneMatrices() const {
         if (footAdjustmentMatrices.empty()) {
             return finalBoneMatrices;
@@ -68,9 +91,6 @@ public:
         return footAdjustmentMatrices;
     }
 
-    /**
-     * @brief Clear foot adjustments (call at start of frame before physics).
-     */
     void ClearFootAdjustments() {
         footAdjustmentMatrices.clear();
     }
@@ -99,13 +119,16 @@ public:
             meshes[i].Draw(shader);
     }
 
+    const auto& GetBoneInfoMap() const { return m_BoneInfoMap; }
     auto& GetBoneInfoMap() { return m_BoneInfoMap; }
-    int& GetBoneCount() { return m_BoneCounter; }
 
-    /**
-     * @brief Initialize foot bone indices from bone info map.
-     * Call once after model is loaded.
-     */
+    int& GetBoneCount() { return m_BoneCounter; }
+    int GetBoneCount() const { return m_BoneCounter; }
+
+    const AssimpNodeData* GetRootNode() const {
+        return &m_RootNode;
+    }
+
     void InitializeFootBones()
     {
         footBoneIndices.clear();
@@ -118,9 +141,6 @@ public:
         footBonesInitialized = !footBoneIndices.empty();
     }
 
-    /**
-     * @brief Get world-space foot positions given character position and bone matrices.
-     */
     std::vector<glm::vec3> GetFootPositions(const glm::vec3& characterPos,
                                             const std::vector<glm::mat4>& boneMatrices) const
     {
@@ -138,11 +158,11 @@ public:
     }
 
     struct IKChain {
-        int upperBoneIdx;  // thigh
-        int lowerBoneIdx;  // shin
-        int footBoneIdx;   // foot (target)
-        float upperLength; // thigh length
-        float lowerLength; // shin length
+        int upperBoneIdx;
+        int lowerBoneIdx;
+        int footBoneIdx;
+        float upperLength;
+        float lowerLength;
     };
 
     struct AdjustedLeg {
@@ -195,7 +215,6 @@ public:
         glm::vec3 localHingeAxis = glm::normalize(glm::vec3(upperMatrix[0]));
 
         glm::vec3 poleOffset  = poleVector - upperPos;
-
         glm::vec3 poleBendDir = poleOffset - targetDir * glm::dot(poleOffset, targetDir);
 
         glm::vec3 bendDir;
@@ -249,8 +268,6 @@ public:
 
         return result;
     }
-
-
 
     std::vector<glm::mat4> AdjustBonesForTerrainCollisionIK(
             const std::vector<glm::mat4>& originalBoneMatrices,
@@ -368,20 +385,13 @@ public:
         return finalSkinningMatrices;
     }
 
-
-
     int GetBoneIndex(const std::string& boneName) const {
         auto it = m_BoneInfoMap.find(boneName);
         return it != m_BoneInfoMap.end() ? it->second.id : -1;
     }
 
-
-
-    /**
-   * @brief Check if foot adjustment would be necessary (for early collision detection).
-   */
     bool WouldFeetHitTerrain(
-            const glm::mat4& characterWorldMatrix, // Changed to mat4 to match
+            const glm::mat4& characterWorldMatrix,
             const std::vector<glm::mat4>& boneMatrices,
             float maxStepHeight,
             std::function<float(glm::vec3)> getTerrainHeight) const
@@ -395,7 +405,6 @@ public:
                 continue;
             }
 
-            // Convert Model Space foot position to World Space correctly using the matrix
             glm::vec4 modelFootPos = boneMatrices[boneIdx][3];
             glm::vec3 footWorldPos = glm::vec3(characterWorldMatrix * modelFootPos);
 
@@ -403,11 +412,11 @@ public:
             float stepRequired = terrainHeight - footWorldPos.y;
 
             if (stepRequired > maxStepHeight) {
-                return true;  // Blocked
+                return true;
             }
         }
 
-        return false;  // Clear
+        return false;
     }
 
     std::vector<glm::vec3> getMeshVerticesCollapsed() const {
@@ -462,17 +471,14 @@ public:
     {
         string filename = string(path);
 
-        // Convert backslashes to forward slashes for consistency
         std::replace(filename.begin(), filename.end(), '\\', '/');
 
-        // Find the last slash to isolate just the filename
         size_t lastSlash = filename.find_last_of('/');
         if (lastSlash != string::npos)
         {
             filename = filename.substr(lastSlash + 1);
         }
 
-        // Now safely combine your engine path with just "maria_diffuse.png"
         filename = directory + '/' + filename;
 
         int width, height, nrComponents;
@@ -506,12 +512,24 @@ public:
     }
 
 private:
-
+    AssimpNodeData m_RootNode;
     std::vector<glm::mat4> footAdjustmentMatrices;
     Assimp::Importer m_Importer;
     const aiScene* m_Scene;
     std::map<string, BoneInfo> m_BoneInfoMap;
     int m_BoneCounter = 0;
+
+    void ReadNodeHierarchy(const aiNode* src, AssimpNodeData& dest) {
+        dest.name = src->mName.data;
+        dest.transformation = AssimpGLMHelpers::ConvertMatrixToGLMFormat(src->mTransformation);
+        dest.childrenCount = src->mNumChildren;
+
+        for (unsigned int i = 0; i < src->mNumChildren; i++) {
+            AssimpNodeData childData;
+            ReadNodeHierarchy(src->mChildren[i], childData);
+            dest.children.push_back(childData);
+        }
+    }
 
     void loadModel(string const &path)
     {
@@ -532,6 +550,8 @@ private:
         }
 
         directory = path.substr(0, path.find_last_of('/'));
+
+        ReadNodeHierarchy(m_Scene->mRootNode, m_RootNode);
 
         processNode(m_Scene->mRootNode, m_Scene);
     }
@@ -622,7 +642,6 @@ private:
             int boneID = -1;
             std::string boneName = mesh->mBones[boneIndex]->mName.C_Str();
 
-            // DEBUG
             int numWeights = mesh->mBones[boneIndex]->mNumWeights;
             std::cout << "[Bone] " << boneName << " has " << numWeights << " vertex weights" << std::endl;
 
