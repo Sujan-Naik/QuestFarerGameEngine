@@ -239,19 +239,19 @@ namespace scene::components {
             }
 
             if (ctrl->skeleton) {
-                std::string targetBoneName = "B-hand.L";
+                std::string targetBoneName = "B-forearm.L";
                 switch (ctrl->m_activePunchIntent) {
                     case BoxingPunch::Jab:
                     case BoxingPunch::LeftHook:
                     case BoxingPunch::LeftUppercut:
-                        targetBoneName = "B-hand.L";
+                        targetBoneName = "B-forearm.L";
                         break;
                     case BoxingPunch::Cross:
                     case BoxingPunch::RightHook:
-                        targetBoneName = "B-hand.R";
+                        targetBoneName = "B-forearm.R";
                         break;
                     default:
-                        targetBoneName = "B-hand.L";
+                        targetBoneName = "B-forearm.L";
                         break;
                 }
                 attack.damagingBoneIndex = ctrl->skeleton->GetBoneIndex(targetBoneName);

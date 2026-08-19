@@ -116,7 +116,7 @@ namespace scene::components {
                                            (ctrl.transform->getUp() * delta.z);
 
                     if (physics) {
-                        physics->setKinematicDisplacement(worldDelta * MODEL_SCALE);
+                        physics->setKinematicDisplacement(worldDelta * ( MODEL_SCALE * 100)) ;
                     }
                 }
             }

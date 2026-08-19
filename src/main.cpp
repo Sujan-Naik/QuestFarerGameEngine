@@ -83,6 +83,7 @@ GLFWwindow* initialiseGLFW()
     glfwSetCursorPosCallback(window, Player::Player::mouse_callback);
     glfwSetMouseButtonCallback(window, Player::Player::mouse_button_callback);
     glfwSetScrollCallback(window, Player::Player::scroll_callback);
+
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 

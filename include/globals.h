@@ -3,7 +3,6 @@
 
 #include <glm/glm.hpp>
 
-
 static const int MAX_ENTITIES = 100;
 
 static constexpr float EPSILON = 0.001f; // For floating-point comparison
@@ -15,6 +14,12 @@ const double FIXED_TIMESTEP = 1.0 / 60.0;
 const glm::vec3 GRAVITY = glm::vec3(0.0f, -9.81f, 0.0f);
 
 const float ACTION_COOLDOWN = 0.2f;
+
+// -----------------------------------------------------------------------
+// Camera constants
+// -----------------------------------------------------------------------
+constexpr float CAMERA_HEIGHT   = 15.0f;
+constexpr float CAMERA_DISTANCE = 10.0f;
 
 // -----------------------------------------------------------------------
 // Diamond Square constants
@@ -34,12 +39,12 @@ constexpr int   MC_GRID_Z     = 100;
 constexpr float MC_NOISE_FREQ = 0.0201f;  // perlin frequency (larger = smaller blobs)
 constexpr float MC_WORLD_SCALE = 5.0f;    // uniform scale applied to the final mesh
 
+constexpr int X_CHUNKS = 16, Z_CHUNKS = 16;
 
-constexpr int X_CHUNKS = 16, Z_CHUNKS=16;
+constexpr int X_CHUNK_SIZE = 16;
+constexpr int Y_CHUNK_SIZE = 16;
+constexpr int Z_CHUNK_SIZE = 16;
 
+const float MODEL_SCALE = 0.08f;
 
-constexpr int X_CHUNK_SIZE = 16, Y_CHUNK_SIZE=16, Z_CHUNK_SIZE=16;
-
-const float MODEL_SCALE = 20;
-
-#endif //QUESTFARERGAMEENGINE_GLOBALS_H
+#endif // QUESTFARERGAMEENGINE_GLOBALS_H

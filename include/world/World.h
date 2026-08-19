@@ -190,8 +190,7 @@ namespace world {
 
         int createBaseHumanoid(glm::vec3 pos, bool isPlayer) {
             animation::AnimationAssetLibrary assets;
-//            assets.loadFromFBX("resources/objects/humanoid/female_character.fbx");
-            assets.loadFromFBX("resources/objects/humanoid/larissa/larissa_2.fbx");
+            assets.loadFromFBX("resources/objects/humanoid/warrior_girl.fbx");
             if (!assets.model) return -1;
 
             auto ourShader = std::make_unique<Shader>(
@@ -201,8 +200,7 @@ namespace world {
 
             auto characterTransform = Transform{assets.model->getMeshVerticesCollapsed()};
             characterTransform.position = pos;
-//            characterTransform.scale = {0.05f, 0.05f, 0.05f};
-            characterTransform.scale = {20, 20, 20};
+            characterTransform.scale = {MODEL_SCALE, MODEL_SCALE, MODEL_SCALE};
 
             int entityId = numEntities;
             auto sharedFSM = std::make_shared<AnimationFSM>();
@@ -338,8 +336,8 @@ namespace world {
             int entityId = createBaseHumanoid(pos, false);
             if (entityId == -1) return;
 
-//            AIComponent ac(entityId);
-//            ecsManager->addAIComponent(entityId, ac);
+            // AIComponent ac(entityId);
+            // ecsManager->addAIComponent(entityId, ac);
         }
 
 
@@ -354,7 +352,7 @@ namespace world {
 
         void initialise(GLFWwindow *window) {
             this->window = window;
-            initialisePlayer({30, 30, 30});
+            initialisePlayer({0, 40, 0});
             initialiseNPC({35, 100, 30});
 
             createVoxels();
@@ -389,7 +387,7 @@ namespace world {
             player->updateCamera(*ecsManager);
         }
 
-        bool debug = true;
+        bool debug = false;
 
         std::unique_ptr<Shader> debugShader;
 

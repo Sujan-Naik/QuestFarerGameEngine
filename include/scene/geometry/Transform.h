@@ -48,9 +48,6 @@ struct Transform {
             minBounds = glm::min(minBounds, vertex);
             maxBounds = glm::max(maxBounds, vertex);
         }
-
-        maxBounds.y -= minBounds.y;
-        minBounds.y = 0;
     }
 
     glm::vec3 getSize() const {

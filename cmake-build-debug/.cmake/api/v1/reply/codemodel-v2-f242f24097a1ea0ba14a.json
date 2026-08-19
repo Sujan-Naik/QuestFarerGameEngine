@@ -1,0 +1,123 @@
+{
+	"configurations" : 
+	[
+		{
+			"abstractTargets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "Threads::Threads::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-Threads__Threads-Debug-b8e60f56a703be13f3ef.json",
+					"name" : "Threads::Threads",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "assimp::assimp::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-assimp__assimp-Debug-0524aef17e6d810ea646.json",
+					"name" : "assimp::assimp",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "draco::draco::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-draco__draco-Debug-611fd7e683bf9131e8d9.json",
+					"name" : "draco::draco",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "draco::draco_static::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-draco__draco_static-Debug-c83d4b908c50a44ac832.json",
+					"name" : "draco::draco_static",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "glfw::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-glfw-Debug-09ac370ddc7e2cb60a3f.json",
+					"name" : "glfw",
+					"projectIndex" : 0
+				}
+			],
+			"directories" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					],
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-fd6451d79dc282e2f566.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.26"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"abstractTargetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4
+					],
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "QuestFarerGameEngine",
+					"targetIndexes" : 
+					[
+						0,
+						1
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "ForceCopyResources::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-ForceCopyResources-Debug-31e6d558ddd04b9e9fb2.json",
+					"name" : "ForceCopyResources",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "QuestFarerGameEngine::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-QuestFarerGameEngine-Debug-106a73f1a73705711325.json",
+					"name" : "QuestFarerGameEngine",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/sujan/CLionProjects/QuestFarerGameEngine/cmake-build-debug",
+		"source" : "/home/sujan/CLionProjects/QuestFarerGameEngine"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 10
+	}
+}
